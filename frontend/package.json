@@ -1,0 +1,44 @@
+{
+  "name": "frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vite preview",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build --force"
+  },
+  "dependencies": {
+    "@vee-validate/yup": "^4.14.7",
+    "axios": "^1.7.7",
+    "pinia": "^2.2.4",
+    "pinia-plugin-persistedstate": "^4.1.2",
+    "qs": "^6.13.0",
+    "vee-validate": "^4.14.6",
+    "vite-plugin-vuetify": "^2.0.4",
+    "vue": "^3.5.12",
+    "vue-i18n": "^10.0.4",
+    "vue-router": "^4.4.5",
+    "vuetify": "^3.7.3",
+    "webfontloader": "^1.6.28",
+    "yup": "^1.4.0"
+  },
+  "devDependencies": {
+    "@mdi/font": "^7.4.47",
+    "@tsconfig/node20": "^20.1.4",
+    "@types/node": "^20.16.11",
+    "@types/qs": "^6.9.17",
+    "@types/webfontloader": "^1.6.38",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "@vue/tsconfig": "^0.5.1",
+    "npm-run-all2": "^6.2.3",
+    "sass": "^1.80.5",
+    "sass-loader": "^16.0.3",
+    "typescript": "~5.5.4",
+    "vite": "^5.4.8",
+    "vue-tsc": "^2.1.6"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}
