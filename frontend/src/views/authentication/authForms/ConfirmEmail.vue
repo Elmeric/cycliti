@@ -6,10 +6,12 @@ import { toTypedSchema } from "@vee-validate/yup";
 import * as yup from "yup";
 import { useUserStore } from "@/stores";
 
+const props = defineProps({ token: String });
+console.log("Token: ", props.token);
+
 const schema = toTypedSchema(
   yup.object({
     email: yup.string().email().required(),
-    code: yup.string().min(6).max(6).required(),
   })
 );
 
@@ -17,38 +19,46 @@ const { meta, errors, handleSubmit, isSubmitting, defineField } = useForm({
   validationSchema: schema,
   initialValues: {
     email: "",
-    code: "",
   },
 });
 
 const [email, emailAttrs] = defineField("email");
-const [code, codeAttrs] = defineField("code");
 const router = useRouter();
+const dialog = ref(false);
 
-// https://tutorialedge.net/projects/building-imgur-clone-vuejs-nodejs/part-6-login-register-flow/
 const onSubmit = handleSubmit(async (values, { setFieldError }) => {
+  // 1. via api, validate the email / token pair
+  // 2. if success, inform user its account is activated and propose to log in
+  // 3. else if email is a known inactive a user, prose to resend activation email (3 times max)
+  // 4. else if max activation attempts reached, delete user, inform and redirect to the sign up page
+  // 5. else (unknown email), inform and redirect to the sign up page
+
   const userStore = useUserStore();
-  const { success, status, message } = await userStore.createUser(
+  const { success, status, message } = await userStore.activate(
     values.email,
-    values.code,
+    props.token ?? ""
   );
   if (success) {
-    // redirect to the dashboard page
-    router.push({ name: "Dashboard" });
+    dialog.value = true
   } else {
     console.log(status, message);
-    let msg: string;
-    if (status == 500 || !message) {
-      msg = "Unattended server error: contact your app provider.";
-    } else {
-      msg = message;
-    }
-    setFieldError("email", msg);
-    setFieldError("code", msg);
+    // let msg: string;
+    // if (status == 500 || !message) {
+    //   msg = "Unattended server error: contact your app provider.";
+    // } else {
+    //   msg = message;
+    // }
+    setFieldError("email", message);
   }
 });
 
 const visible = ref(false);
+
+function onConfirm() {
+  // Close pop-up dialog and redirect to the log in page
+  dialog.value = false;
+  router.push({ name: "Login" });
+}
 </script>
 
 <template>
@@ -79,31 +89,6 @@ const visible = ref(false);
       ></v-text-field>
     </div>
 
-    <div>
-      <div
-        class="d-flex align-center justify-start text-subtitle-1 text-medium-emphasis"
-      >
-        Password
-      </div>
-      <v-text-field
-        aria-label="code"
-        :type="visible ? 'text' : 'password'"
-        v-model="code"
-        v-bind="codeAttrs"
-        :error-messages="errors.code"
-        :append-inner-icon="visible ? 'mdi-eye' : 'mdi-eye-off'"
-        @click:append-inner="visible = !visible"
-        placeholder="Enter your confirmation code"
-        prepend-inner-icon="mdi-lock-outline"
-        required
-        density="compact"
-        variant="outlined"
-        hide-details="auto"
-        color="primary"
-        class="mt-2"
-      ></v-text-field>
-    </div>
-
     <v-btn
       type="submit"
       variant="flat"
@@ -114,16 +99,35 @@ const visible = ref(false);
       :disabled="!meta.valid"
       class="mt-5"
     >
-      Sign up
+      Activate account
     </v-btn>
-    <div class="d-sm-inline-flex align-center mt-2 mb-7 mb-sm-0 font-weight-bold">
-      <h6 class="text-caption">
-        By Signing up, you agree to our
-        <router-link to="/auth/register" class="text-primary link-hover font-weight-medium">Terms of Service </router-link>
-        and
-        <router-link to="/auth/register" class="text-primary link-hover font-weight-medium">Privacy Policy</router-link>
-      </h6>
-</div>
-
   </form>
+  <v-dialog v-model="dialog" width="auto" persistent>
+    <v-card max-width="500" elevation="16">
+      <template v-slot:prepend>
+        <v-icon icon="mdi-bike" color="primary" class="me-2"></v-icon>
+      </template>
+      <template v-slot:title>
+        <div class="text-h6 font-weight-black text-primary">
+          Wellome to the Cycliti community!
+        </div>
+      </template>
+      <v-divider></v-divider>
+      <v-card-text class="pa-6">
+        <div>
+          Your account is now activated. Log in and enjoy Cycliti!
+        </div>
+      </v-card-text>
+      <template v-slot:actions>
+        <v-btn
+          color="primary"
+          rounded="xl"
+          variant="flat"
+          class="ms-auto"
+          text="Log in"
+          @click="onConfirm"
+        ></v-btn>
+      </template>
+    </v-card>
+  </v-dialog>
 </template>

@@ -21,6 +21,7 @@ pyjwt = "^2.9.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.9"
+aiosmtpd = "^1.4.6"
 
 
 [tool.poetry.group.test.dependencies]

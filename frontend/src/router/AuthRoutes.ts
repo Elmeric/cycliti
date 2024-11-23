@@ -1,3 +1,5 @@
+import type { RouteLocationNormalized } from "vue-router";
+
 const AuthRoutes = {
   path: "/auth",
   component: () => import("@/layouts/authentication/AuthLayout.vue"),
@@ -17,8 +19,9 @@ const AuthRoutes = {
     },
     {
       name: "ConfirmEmail",
-      path: "confirm-email",
+      path: "activate",
       component: () => import("@/views/authentication/auth/ConfirmEmailPage.vue"),
+      props: (route: RouteLocationNormalized) => ({query: route.query.token}),
     },
     {
       name: "Error 404",

@@ -42,5 +42,5 @@ app.add_middleware(
 # app.include_router(api_router)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-db_uri = settings.DB_URI
-print(f"Connecting to MySQL database using: {db_uri}")
+# db_uri = settings.DB_URI
+# print(f"Connecting to MySQL database using: {db_uri}")

@@ -24,23 +24,60 @@ def test_create_user(client: TestClient):
             "password": "password",
         }
     )
-    # assert response.text is ""
     assert response.status_code is status.HTTP_201_CREATED
-    data = response.json()
-    assert data["id"] is not None
-    # assert data["uid"] is not None
-    assert data["email"] == "titi.toto@free.fr"
-    assert data["username"] == "Titi"
-    # assert security.verify_password("password", data["hashed_pwd"]) is True
-    assert data["name"] is None
-    assert data["city"] is None
-    assert data["birthdate"] is None
-    assert data["preferred_language"] == "fr-FR"
-    assert data["gender"] is None
-    assert data["access_type"] == 1
-    assert data["photo_path"] is None
-    assert data["is_active"] is False
-    assert data["is_superuser"] is False
+    msg = response.json()
+    assert "msg" in msg
+    assert msg["msg"] == ("A link to activate your account has been emailed "
+                          "to the address provided.")
+
+
+def test_create_user_same_email(client: TestClient):
+    response = client.post(
+        f"{settings.API_V1_STR}/users/",
+        json={
+            "email": "moi.nous@eux.fr",
+            "username": "Moi",
+            "password": "password",
+        }
+    )
+    assert response.status_code is status.HTTP_201_CREATED
+
+    r = client.post(
+        f"{settings.API_V1_STR}/users/",
+        json={
+            "email": "moi.nous@eux.fr",
+            "username": "Toto",
+            "password": "passw0rd",
+        }
+    )
+    assert r.status_code is status.HTTP_400_BAD_REQUEST
+    assert "An error occur, please retry." in r.text
+
+
+def test_create_user_same_username(client: TestClient):
+    response = client.post(
+        f"{settings.API_V1_STR}/users/",
+        json={
+            "email": "a.a@free.fr",
+            "username": "Aaa",
+            "password": "password",
+        }
+    )
+    assert response.status_code is status.HTTP_201_CREATED
+
+    r = client.post(
+        f"{settings.API_V1_STR}/users/",
+        json={
+            "email": "b.b@free.fr",
+            "username": "Aaa",
+            "password": "passw0rd",
+        }
+    )
+    assert response.status_code is status.HTTP_201_CREATED
+    msg = response.json()
+    assert "msg" in msg
+    assert msg["msg"] == ("A link to activate your account has been emailed "
+                          "to the address provided.")
 
 
 # def test_create_user_error(client: TestClient, mock_commit):

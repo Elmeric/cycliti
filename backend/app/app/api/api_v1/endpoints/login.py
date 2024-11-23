@@ -10,7 +10,7 @@ from app.api import deps
 from app.core import security
 from app.config import settings
 from app.utils import (
-    generate_password_reset_token,
+    generate_nonce,
     send_reset_password_email,
     verify_password_reset_token,
 )
@@ -18,8 +18,9 @@ from app.utils import (
 router = APIRouter()
 
 
+# https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#authentication-and-error-messages
 @router.post("/login/access-token", response_model=schemas.Token)
-async def login_access_token(
+async def get_access_token(
     db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ) -> schemas.Token:
     """
@@ -31,12 +32,12 @@ async def login_access_token(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect email or password"
+            detail="Login failed; Invalid user ID or password."
         )
     elif not crud.user.is_active(user):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            detail="Login failed; Invalid user ID or password."
         )
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return schemas.Token(
@@ -64,16 +65,13 @@ async def recover_password(email: str, db: Session = Depends(deps.get_db)) -> An
     """
     user = await crud.user.get_by_email(db, email=email)
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="The user with this username does not exist in the system.",
+    if user:
+        password_reset_token = generate_nonce()
+        send_reset_password_email(
+            email_to=user.email, email=email, token=password_reset_token
         )
-    password_reset_token = generate_password_reset_token(email=email)
-    token = send_reset_password_email(
-        email_to=user.email, email=email, token=password_reset_token
-    )
-    return {"msg": f"Password recovery email sent: {token}"}
+    return {"msg": "If that email address is in our database, "
+                   "we will send you an email to reset your password."}
 
 
 @router.post("/reset-password/", response_model=schemas.Msg)
@@ -85,28 +83,23 @@ async def reset_password(
     """
     Reset password
     """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You don't have permission to access this resource.",
+    )
     email = verify_password_reset_token(token)
     if not email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid token"
-        )
+        raise credentials_exception
     user = await crud.user.get_by_email(db, email=email)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="The user with this username does not exist in the system.",
-        )
+        raise credentials_exception
     elif not crud.user.is_active(user):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Inactive user: {user}"
-        )
+        raise credentials_exception
     try:
         await crud.user.change_password(db, user_db=user, new_password=new_password)
     except (crud.CrudError, Exception) as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal database server error."
+            detail="An error occur, please retry."
         )
-    return {"msg": "Password updated successfully"}
+    return {"msg": "Password updated successfully."}

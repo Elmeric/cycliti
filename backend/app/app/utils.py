@@ -1,11 +1,13 @@
-import logging
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import Any, Dict, Optional
+import base64
+import secrets
+import smtplib
+import string
+from datetime import datetime, timezone
+from email.headerregistry import Address
+from email.message import EmailMessage
+from typing import Any
 
-# import emails
 # from emails.template import JinjaTemplate
-import jwt
 
 from app.config import settings
 
@@ -13,15 +15,28 @@ from app.config import settings
 def send_email(
     *,
     email_to: str,
-    environment: Dict[str, Any],
+    environment: dict[str, Any],
     subject_template: str = "",
     html_template: str = "",
 ) -> dict[str, dict[str, Any] | str]:
-    return {
-        "To": email_to,
-        "Subject": subject_template,
-        "Message": environment
-    }
+    msg = EmailMessage()
+    msg["subject"] = subject_template
+    msg['From'] = Address(
+        settings.EMAILS_FROM_DISPLAY_NAME,
+        settings.EMAILS_FROM_USERNAME,
+        settings.EMAILS_FROM_DOMAIN
+    )
+    msg["to"] = email_to
+    msg.set_content(environment["link"])
+
+    with smtplib.SMTP(host="localhost", port=1025) as server:
+        server.send_message(msg)
+
+    # return {
+    #     "To": email_to,
+    #     "Subject": subject_template,
+    #     "Message": environment
+    # }
 # def send_email(
 #     email_to: str,
 #     subject_template: str = "",
@@ -64,7 +79,7 @@ def send_reset_password_email(email_to: str, email: str, token: str) -> str:
     # with open(Path(settings.EMAIL_TEMPLATES_DIR) / "reset_password.html") as f:
     #     template_str = f.read()
     server_host = settings.SERVER_HOST
-    link = f"{server_host}/reset-password?token={token}"
+    link = f"{server_host}reset-password?token={token}"
     send_email(
         email_to=email_to,
         subject_template=subject,
@@ -80,40 +95,68 @@ def send_reset_password_email(email_to: str, email: str, token: str) -> str:
     return token
 
 
-# def send_new_account_email(email_to: str, username: str, password: str) -> None:
-#     project_name = settings.PROJECT_NAME
-#     subject = f"{project_name} - New account for user {username}"
-#     with open(Path(settings.EMAIL_TEMPLATES_DIR) / "new_account.html") as f:
-#         template_str = f.read()
-#     link = settings.SERVER_HOST
-#     send_email(
-#         email_to=email_to,
-#         subject_template=subject,
-#         html_template=template_str,
-#         environment={
-#             "project_name": settings.PROJECT_NAME,
-#             "username": username,
-#             "password": password,
-#             "email": email_to,
-#             "link": link,
-#         },
-#     )
-
-
-def generate_password_reset_token(email: str) -> str:
-    delta = timedelta(hours=settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
-    now = datetime.now(timezone.utc)
-    expires = now + delta
-    exp = int(expires.timestamp())
-    encoded_jwt = jwt.encode(
-        {"exp": exp, "nbf": now, "sub": email}, settings.SECRET_KEY, algorithm="HS256",
+def send_account_activation_email(email_to: str, email: str, token: str) -> str:
+    project_name = settings.PROJECT_NAME
+    subject = f"{project_name} - Account activation for user {email}"
+    # with open(Path(settings.EMAIL_TEMPLATES_DIR) / "account_activation.html") as f:
+    #     template_str = f.read()
+    server_host = settings.SERVER_HOST
+    link = f"{server_host}auth/activate?token={token}"
+    send_email(
+        email_to=email_to,
+        subject_template=subject,
+        # html_template=template_str,
+        environment={
+            "project_name": settings.PROJECT_NAME,
+            "username": email,
+            "email": email_to,
+            "valid_hours": settings.EMAIL_ACTIVATION_TOKEN_EXPIRE_HOURS,
+            "link": link,
+        },
     )
-    return encoded_jwt
+    return token
 
 
-def verify_password_reset_token(token: str) -> Optional[str]:
-    try:
-        decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        return decoded_token["sub"]
-    except (jwt.PyJWTError, KeyError):
-        return None
+def generate_nonce() -> str:
+    # 24 8-bits utf-8 characters gives 4 * (24/3) 6-bits base64 encoded characters
+    # token length will be 192 bits once encoded
+    nonce = ''.join(
+        secrets.choice(string.ascii_letters + string.digits) for _ in range(24)
+    )
+    return base64.urlsafe_b64encode(nonce.encode()).decode()
+
+
+def verify_password_reset_token(token: str) -> str | None:
+    # To be deleted and replaced by verify_nonce
+    return None
+
+
+def verify_nonce(
+        nonce: str,
+        expected_nonce: str,
+        issued_at: int,
+        threshold_hours: int,
+) -> bool:
+    timestamp = int(datetime.timestamp(datetime.now(timezone.utc)))
+    too_old = timestamp - issued_at > threshold_hours * 3600 + 60
+    return not too_old and nonce == expected_nonce
+
+
+def verify_password_reset_nonce(
+        nonce: str,
+        expected_nonce: str,
+        issued_at: int
+) -> bool:
+    return verify_nonce(
+        nonce, expected_nonce, issued_at, settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS
+    )
+
+
+def verify_account_activation_nonce(
+        nonce: str,
+        expected_nonce: str,
+        issued_at: int
+) -> bool:
+    return verify_nonce(
+        nonce, expected_nonce, issued_at, settings.EMAIL_ACTIVATION_TOKEN_EXPIRE_HOURS
+    )

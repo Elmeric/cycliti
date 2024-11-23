@@ -4,7 +4,7 @@ from pydantic import computed_field, MySQLDsn, EmailStr, AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DOTENV = Path(__file__).parent / ".env"
-print(DOTENV)
+# print(DOTENV)
 
 
 class Settings(BaseSettings):
@@ -21,11 +21,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str # = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
-    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
+    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 1
+    EMAIL_ACTIVATION_TOKEN_EXPIRE_HOURS: int = 1
 
     FIRST_SUPERUSER_EMAIL: EmailStr
     FIRST_SUPERUSER_USERNAME: str
     FIRST_SUPERUSER_PASSWORD: str
+
+    EMAILS_FROM_DISPLAY_NAME: str = "Cyclity"
+    EMAILS_FROM_USERNAME: str = "contact"
+    EMAILS_FROM_DOMAIN: str = "cycliti.com"
 
     @computed_field(return_type=str)
     @property

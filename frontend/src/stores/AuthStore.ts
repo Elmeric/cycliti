@@ -58,6 +58,9 @@ export default defineStore({
     ): Promise<ApiResponse<null>> {
       const result: ApiResponse<null> = { success: false, content: null };
       try {
+        // TODO: check whether the email exist in DB and is inactive. If so, 
+        // propose to activate the account or to re-send an activation email.
+        // To be limited to 3 attempts... 
         const resp = await API.auth.authenticate({ username, password });
         this.setToken(resp.data, keepMe);
         result.success = true;

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import ConfirmEmail from '@/views/authentication/authForms/ConfirmEmail.vue';
+const props = defineProps({query: String})
+console.log(props)
+console.log(props.query)
 </script>
 
 <template>
@@ -15,7 +18,7 @@ import ConfirmEmail from '@/views/authentication/authForms/ConfirmEmail.vue';
               <v-card elevation="24" max-width="30rem" class="mx-auto my-0">
 
                 <v-card-text class="pa-sm-10 pa-6">
-                  <ConfirmEmail />
+                  <ConfirmEmail :token="props.query"/>
                 </v-card-text>
                 
               </v-card>

@@ -7,6 +7,7 @@ from app import crud
 from app.config import settings
 from schemas import UserCreate
 from tests.utils.utils import random_email, random_lower_string
+from utils import generate_nonce
 
 
 #
@@ -31,7 +32,7 @@ def test_get_access_token_invalid_password(client: TestClient) -> None:
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 400
-    assert "Incorrect email or password" in r.text
+    assert "Login failed; Invalid user ID or password" in r.text
 
 
 def test_get_access_token_unknown_user(client: TestClient) -> None:
@@ -41,7 +42,7 @@ def test_get_access_token_unknown_user(client: TestClient) -> None:
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 400
-    assert "Incorrect email or password" in r.text
+    assert "Login failed; Invalid user ID or password" in r.text
 
 
 async def test_get_access_token_inactive_user(session: Session, client: TestClient) -> None:
@@ -61,7 +62,7 @@ async def test_get_access_token_inactive_user(session: Session, client: TestClie
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 400
-    assert "Inactive user" in r.text
+    assert "Login failed; Invalid user ID or password" in r.text
 
 
 #
@@ -88,8 +89,8 @@ def test_use_access_token_no_sub_claim(
         f"{settings.API_V1_STR}/login/test-token",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 401
-    assert "Could not validate credentials" in r.text
+    assert r.status_code == 403
+    assert "You don't have permission to access this resource" in r.text
 
 
 def test_use_access_token_expired_token(
@@ -100,7 +101,7 @@ def test_use_access_token_expired_token(
         headers=superuser_token_headers,
     )
     assert r.status_code == 403
-    assert "Token has been expired" in r.text
+    assert "You don't have permission to access this resource" in r.text
 
 
 def test_use_access_token_unknowk_user(
@@ -112,8 +113,8 @@ def test_use_access_token_unknowk_user(
         f"{settings.API_V1_STR}/login/test-token",
         headers=superuser_token_headers,
     )
-    assert r.status_code == 401
-    assert "Could not validate credentials" in r.text
+    assert r.status_code == 403
+    assert "You don't have permission to access this resource" in r.text
 
 
 #
@@ -125,14 +126,18 @@ def test_recover_password_success(client: TestClient) -> None:
     assert r.status_code == 200
     msg = r.json()
     assert "msg" in msg
-    assert msg["msg"].startswith("Password recovery email sent")
+    assert msg["msg"].startswith("If that email address is in our database, "
+                                 "we will send you an email to reset your password.")
 
 
 def test_recover_password_unknown_user(client: TestClient) -> None:
     email = random_email()
     r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
-    assert r.status_code == 404
-    assert "The user with this username does not exist in the system." in r.text
+    assert r.status_code == 200
+    msg = r.json()
+    assert "msg" in msg
+    assert msg["msg"].startswith("If that email address is in our database, "
+                                 "we will send you an email to reset your password.")
 
 
 #
@@ -142,8 +147,7 @@ def test_reset_password_success(client: TestClient) -> None:
     email = settings.FIRST_SUPERUSER_EMAIL
     r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
     assert r.status_code == 200
-    msg = r.json()["msg"]
-    token = msg.split(": ")[1]
+    token = generate_nonce()
     body_data = {
         "token": token,
         "new_password": "ericeric",
@@ -152,7 +156,7 @@ def test_reset_password_success(client: TestClient) -> None:
     assert r.status_code == 200
     msg = r.json()
     assert "msg" in msg
-    assert msg["msg"] == "Password updated successfully"
+    assert msg["msg"] == "Password updated successfully."
 
 
 def test_reset_password_invalid_token(client: TestClient) -> None:
@@ -161,8 +165,8 @@ def test_reset_password_invalid_token(client: TestClient) -> None:
         "new_password": random_lower_string(8),
     }
     r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
-    assert r.status_code == 400
-    assert "Invalid token" in r.text
+    assert r.status_code == 403
+    assert "You don't have permission to access this resource" in r.text
 
 
 def test_reset_password_unknown_user(
@@ -172,15 +176,14 @@ def test_reset_password_unknown_user(
     email = settings.FIRST_SUPERUSER_EMAIL
     r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
     assert r.status_code == 200
-    msg = r.json()["msg"]
-    token = msg.split(": ")[1]
+    token = generate_nonce()
     body_data = {
         "token": token,
         "new_password": "ericeric",
     }
     r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
-    assert r.status_code == 404
-    assert "The user with this username does not exist in the system." in r.text
+    assert r.status_code == 403
+    assert "You don't have permission to access this resource." in r.text
 
 
 async def test_reset_password_inactive_user(session: Session, client: TestClient) -> None:
@@ -196,16 +199,15 @@ async def test_reset_password_inactive_user(session: Session, client: TestClient
 
     r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
     assert r.status_code == 200
-    msg = r.json()["msg"]
-    token = msg.split(": ")[1]
+    token = generate_nonce()
     body_data = {
         "token": token,
         "new_password": "changeme",
     }
 
     r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
-    assert r.status_code == 400
-    assert f"Inactive user: {user}" in r.text
+    assert r.status_code == 403
+    assert f"You don't have permission to access this resource" in r.text
 
 
 def test_reset_password_db_server_error(
@@ -216,12 +218,11 @@ def test_reset_password_db_server_error(
     email = settings.FIRST_SUPERUSER_EMAIL
     r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
     assert r.status_code == 200
-    msg = r.json()["msg"]
-    token = msg.split(": ")[1]
+    token = generate_nonce()
     body_data = {
         "token": token,
         "new_password": "ericeric",
     }
     r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
     assert r.status_code == 500
-    assert "Internal database server error." in r.text
+    assert "An error occur, please retry." in r.text

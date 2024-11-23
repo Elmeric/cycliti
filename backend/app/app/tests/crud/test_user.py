@@ -131,6 +131,41 @@ async def test_get_user_unknown_user(session: Session) -> None:
     assert user is None
 
 
+async def test_pre_activate_user(session: Session) -> None:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+    )
+    user = await crud.user.create(session, obj_in=user_in)
+    assert user
+    pre_activated_user = await crud.user.pre_activate(session, db_obj=user)
+    assert pre_activated_user
+    assert pre_activated_user.activation.nonce
+    assert pre_activated_user.activation.issued_at
+    assert pre_activated_user.activation.user_id == user.id
+
+
+async def test_activate_user(session: Session) -> None:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+    )
+    user = await crud.user.create(session, obj_in=user_in)
+    assert not user.is_active
+    await crud.user.activate(session, db_obj=user)
+    activated_user = await crud.user.get(session, user.id)
+    assert activated_user.is_active
+    assert activated_user.activation is None
+
+
 # def test_update_user(db: Session) -> None:
 #     password = random_lower_string()
 #     email = random_email()
