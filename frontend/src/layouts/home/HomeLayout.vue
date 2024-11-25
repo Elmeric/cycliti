@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
+import BaseLayout from "@/layouts/BaseLayout.vue";
 import HomeHeader from "@/layouts/home/HomeHeader.vue";
 import HomeFooter from "@/layouts/home/HomeFooter.vue";
 </script>
 
 <template>
+  <BaseLayout>
+    <template #header>
+      <HomeHeader />
+    </template>
 
-  <HomeHeader />  
+    <RouterView />
 
-  <v-main>
-    <v-container fluid class="pa-0">
-      <RouterView />
-    </v-container>
-  </v-main>
-
-  <HomeFooter />
+    <template #footer>
+      <HomeFooter />
+    </template>
+  </BaseLayout>
 </template>

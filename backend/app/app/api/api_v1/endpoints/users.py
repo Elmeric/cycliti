@@ -60,9 +60,7 @@ async def create_user(
     Create new user.
     """
     same_email = await crud.user.get_by_email(db, email=user_in.email)
-    # same_username = await crud.user.get_by_username(db, username=user_in.username)
     if same_email:
-    # if same_email or same_username:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An error occur, please retry.",
@@ -74,31 +72,43 @@ async def create_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occur, please retry."
         )
-    if user:
-        try:
-            user = await crud.user.pre_activate(db, db_obj=user)
-        except crud.CrudError:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"An error occur, please retry."
-            )
-        send_account_activation_email(
-            email_to=user.email, email=user_in.email, token=user.activation.nonce
-        )
+    send_account_activation_email(
+        email_to=user.email, email=user_in.email, token=user.activation.nonce
+    )
     return {"msg": "A link to activate your account has been emailed "
                    "to the address provided."}
-    # try:
-    #     user = schemas.User.model_validate(user)
-    # except ValidationError as exc:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-    #         detail=f"User model validation error: {exc}"
-    #     )
-    # if settings.EMAILS_ENABLED and user_in.email:
-    #     send_new_account_email(
-    #         email_to=user_in.email, username=user_in.email, password=user_in.password
-    #     )
-    # return user
+
+
+@router.post(
+    "/resend-activation-email",
+    response_model=schemas.Msg,
+)
+async def resend_activation_email(
+    *,
+    email: Annotated[str, Body()],
+    db: Session = Depends(deps.get_db),
+) -> Any:
+    """
+    Resend an activation email to the provided email if exist and allowed.
+    """
+    user = await crud.user.get_by_email(db, email=email)
+    if not user or user.is_active or not user.activation:
+        raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You don't have permission to access this resource.",
+    )
+    try:
+        user = await crud.user.update_activation(db, db_obj=user)
+    except crud.CrudError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occur, please retry."
+        )
+    send_account_activation_email(
+        email_to=user.email, email=email, token=user.activation.nonce
+    )
+    return {"msg": "A link to activate your account has been emailed "
+                   "to the address provided."}
 
 
 @router.post("/activate-account", response_model=schemas.Msg)

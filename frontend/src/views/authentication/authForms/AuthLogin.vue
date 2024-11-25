@@ -4,6 +4,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/yup";
 import * as yup from "yup";
+
 import { useAuthStore } from "@/stores";
 
 const schema = toTypedSchema(
@@ -28,6 +29,7 @@ const [password, passwordAttrs] = defineField("password");
 const [keepMe, keepMeAttrs] = defineField("keepMe");
 const router = useRouter();
 const route = useRoute();
+const isVisiblePwd = ref(false);
 
 const onSubmit = handleSubmit(async (values, { setFieldError }) => {
   const authStore = useAuthStore();
@@ -47,22 +49,16 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
     router.push(redir || { name: "Dashboard" });
   } else {
     console.log(status, message);
-    let msg: string;
-    if (status == 500 || !message) {
-      msg = "Unattended server error: contact your app provider.";
-    } else {
-      msg = message;
-    }
-    setFieldError("email", msg);
-    setFieldError("password", msg);
+    setFieldError("email", message);
+    setFieldError("password", message);
   }
 });
 
-const visible = ref(false);
 </script>
 
 <template>
   <h3 class="text-h3 text-primary text-center mb-0">Log in</h3>
+  
   <form @submit="onSubmit" class="mt-7">
     <div class="mb-6">
       <div
@@ -100,12 +96,12 @@ const visible = ref(false);
       </div>
       <v-text-field
         aria-label="password"
-        :type="visible ? 'text' : 'password'"
+        :type="isVisiblePwd ? 'text' : 'password'"
         v-model="password"
         v-bind="passwordAttrs"
         :error-messages="errors.password"
-        :append-inner-icon="visible ? 'mdi-eye' : 'mdi-eye-off'"
-        @click:append-inner="visible = !visible"
+        :append-inner-icon="isVisiblePwd ? 'mdi-eye' : 'mdi-eye-off'"
+        @click:append-inner="isVisiblePwd = !isVisiblePwd"
         placeholder="Enter your password"
         prepend-inner-icon="mdi-lock-outline"
         required
@@ -137,8 +133,8 @@ const visible = ref(false);
       :loading="isSubmitting"
       :disabled="!meta.valid"
       class="mt-5"
+      text="Log in"
     >
-      Log in
     </v-btn>
   </form>
 </template>

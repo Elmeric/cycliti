@@ -33,6 +33,11 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         del obj_in_data["password"]
         obj_in_data["hashed_password"] = hashed_pwd
         db_obj = self.model(**obj_in_data)
+        nonce = generate_nonce()
+        timestamp = int(dt.timestamp(dt.now(timezone.utc)))
+        print(f"Nonce: {nonce}")
+        print(f"Timestamp: {timestamp}")
+        db_obj.activation = Activation(nonce=nonce, issued_at=timestamp)
         db.add(db_obj)
         try:
             db.commit()
@@ -42,12 +47,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db.refresh(db_obj)
         return db_obj
 
-    async def pre_activate(self, db: Session, *, db_obj: User) -> User:
+    async def update_activation(self, db: Session, *, db_obj: User) -> User:
         nonce = generate_nonce()
         timestamp = int(dt.timestamp(dt.now(timezone.utc)))
         print(f"Nonce: {nonce}")
         print(f"Timestamp: {timestamp}")
-        db_obj.activation = Activation(nonce=nonce, issued_at=timestamp)
+        db_obj.activation.nonce = nonce
+        db_obj.activation.issued_at = timestamp
         try:
             db.commit()
         except SQLAlchemyError as exc:
