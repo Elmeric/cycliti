@@ -1,38 +1,53 @@
 import http from "@/services/api";
-import type { Msg, UserCreate, UserIn } from "@/models/User";
 import { useAuthStore } from "@/stores";
 
-async function getCurrentUser() {
-  return await http.post<UserIn>("/login/test-token", null, { headers: authHeader() });
+import type { Msg, UserCreate, UserIn } from "@/models/User";
+import type { ApiResponse } from "../types";
+
+async function getCurrentUser(): Promise<ApiResponse<UserIn>> {
+  const resp = await http.post<UserIn>("/login/test-token", null, {
+    headers: useAuthStore().authHeader,
+  });
+  return {
+    success: true,
+    content: resp.data,
+    status: resp.status,
+    message: "",
+  };
 }
 
-async function createUser(user: UserCreate) {
-  return await http.post<Msg>("/users", user);
+async function createUser(user: UserCreate): Promise<ApiResponse<Msg>> {
+  const resp = await http.post<Msg>("/users", user);
+  return {
+    success: true,
+    content: resp.data,
+    status: resp.status,
+    message: "",
+  };
 }
 
-async function resendEmail(email: string) {
-  return await http.post<Msg>("/users/resend-activation-email", email);
+async function resendEmail(email: string): Promise<ApiResponse<Msg>> {
+  const resp = await http.post<Msg>("/users/resend-activation-email", email);
+  return {
+    success: true,
+    content: resp.data,
+    status: resp.status,
+    message: "",
+  };
 }
 
-async function activate(email: string, token: string) {
-  return await http.post<Msg>("/users/activate-account", {
+async function activate(email: string, token: string): Promise<ApiResponse<Msg>> {
+  console.log(email, token);
+  const resp = await http.post<Msg>("/users/activate-account", {
     email: email,
     nonce: token,
   });
-}
-
-// function authHeader(url: string): Record<string, string> {
-function authHeader(): Record<string, string> {
-  // return auth header with jwt if user is logged in and request is to the api url
-  const authStore = useAuthStore();
-  const isLoggedIn = authStore.isAuthenticated;
-  // const isApiUrl = url.startsWith(import.meta.env.VITE_API_BASE_URL);
-  if (isLoggedIn) {
-    // if (isLoggedIn && isApiUrl) {
-    return { Authorization: `Bearer ${authStore.token?.access_token}` };
-  } else {
-    return {};
-  }
+  return {
+    success: true,
+    content: resp.data,
+    status: resp.status,
+    message: resp.data.msg,
+  };
 }
 
 export default {

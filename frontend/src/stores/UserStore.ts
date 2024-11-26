@@ -1,9 +1,9 @@
 import { defineStore } from "pinia";
 
+import { API } from "@/services";
+
 import type { Msg, UserCreate, UserIn } from "@/models/User";
 import type { ApiResponse } from "@/services/types";
-import { API } from "@/services";
-import { isAxiosError } from "axios";
 
 interface UsersState {
   users: UserIn[];
@@ -26,35 +26,12 @@ export default defineStore({
     },
 
     async getCurrentUser(): Promise<ApiResponse<UserIn | null>> {
-      const result: ApiResponse<UserIn | null> = { success: false, content: null };
       try {
-        const resp = await API.users.getCurrentUser();
-        this.setCurrentUser(resp.data);
-        result.success = true;
-        result.content = resp.data;
-      } catch (error) {
-        if (isAxiosError(error)) {
-          if (error.response) {
-            // Request made but the server responded with an error
-            console.log(error.response.status, error.response.data);
-            result.status = error.response.status;
-            result.message = error.response.data.detail;
-          } else if (error.request) {
-            // Request made but no response is received from the server.
-            console.log(error.request);
-            result.message = "An error occur, please retry.";
-          } else {
-            // Error occured while setting up the request
-            console.log("Error", error.message);
-            result.status = 500;
-            result.message = error.message;
-          }
-        } else {
-          result.status = 500;
-          result.message = "An error occur, please retry.";
-        }
-      } finally {
+        const result = await API.users.getCurrentUser();
+        this.setCurrentUser(result.content);
         return result;
+      } catch (error) {
+        return API.handleError(error);
       }
     },
 
@@ -70,71 +47,20 @@ export default defineStore({
         is_active: false,
         is_superuser: false,
       }
-      const result: ApiResponse<Msg | null> = { success: false, content: null };
       try {
-        const resp = await API.users.createUser(user);
-        console.log("Create user: ", resp)
-        result.success = true;
-        result.content = resp.data;
+        return await API.users.createUser(user);
       } catch (error) {
-        if (isAxiosError(error)) {
-          if (error.response) {
-            // Request made but the server responded with an error
-            console.log(error.response.status, error.response.data);
-            result.status = error.response.status;
-            result.message = error.response.data.detail;
-          } else if (error.request) {
-            // Request made but no response is received from the server.
-            console.log(error.request);
-            result.message = "An error occur, please retry.";
-          } else {
-            // Error occured while setting up the request
-            console.log("Error", error.message);
-            result.status = 500;
-            result.message = error.message;
-          }
-        } else {
-          result.status = 500;
-          result.message = "An error occur, please retry.";
-        }
-      } finally {
-        return result;
+        return API.handleError(error);
       }
     },
 
     async resendEmail(
       email: string,
     ): Promise<ApiResponse<Msg | null>> {
-      const result: ApiResponse<Msg | null> = { success: false, content: null };
       try {
-        console.log("Resend email")
-        const resp = await API.users.resendEmail(email);
-        console.log("Resend email: ", resp)
-        result.success = true;
-        result.content = resp.data;
+        return await API.users.resendEmail(email);
       } catch (error) {
-        if (isAxiosError(error)) {
-          if (error.response) {
-            // Request made but the server responded with an error
-            console.log(error.response.status, error.response.data);
-            result.status = error.response.status;
-            result.message = error.response.data.detail;
-          } else if (error.request) {
-            // Request made but no response is received from the server.
-            console.log(error.request);
-            result.message = "An error occur, please retry.";
-          } else {
-            // Error occured while setting up the request
-            console.log("Error", error.message);
-            result.status = 500;
-            result.message = error.message;
-          }
-        } else {
-          result.status = 500;
-          result.message = "An error occur, please retry.";
-        }
-      } finally {
-        return result;
+        return API.handleError(error);
       }
     },
 
@@ -142,35 +68,10 @@ export default defineStore({
       email: string,
       token: string
     ): Promise<ApiResponse<Msg | null>> {
-      const result: ApiResponse<Msg | null> = { success: false, content: null };
       try {
-        const resp = await API.users.activate(email, token);
-        console.log("Activate user: ", resp)
-        result.success = true;
-        result.content = resp.data;
+        return await API.users.activate(email, token);
       } catch (error) {
-        if (isAxiosError(error)) {
-          if (error.response) {
-            // Request made but the server responded with an error
-            console.log(error.response.status, error.response.data);
-            result.status = error.response.status;
-            result.message = error.response.data.detail;
-          } else if (error.request) {
-            // Request made but no response is received from the server.
-            console.log(error.request);
-            result.message = "An error occur, please retry.";
-          } else {
-            // Error occured while setting up the request
-            console.log("Error", error.message);
-            result.status = 500;
-            result.message = error.message;
-          }
-        } else {
-          result.status = 500;
-          result.message = "An error occur, please retry.";
-        }
-      } finally {
-        return result;
+        return API.handleError(error);
       }
     },
   },

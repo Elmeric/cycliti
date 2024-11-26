@@ -130,6 +130,8 @@ async def activate_account(
     if not user:
         raise credentials_exception
     print(f"User: {user}")
+    if user.is_active:
+        return {"msg": "Your account is activated: Log in and enjoy Cycliti!"}
     expected_nonce = user.activation.nonce
     issued_at = user.activation.issued_at
     print(f"Expected nonce: {expected_nonce}")
@@ -144,7 +146,7 @@ async def activate_account(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occur, please retry."
         )
-    return {"msg": "Your account is activated: you may log in to Cyclity."}
+    return {"msg": "Your account is activated. Log in and enjoy Cycliti!"}
 
 
 @router.get("/{user_id}", response_model=schemas.User)

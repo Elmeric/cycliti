@@ -45,10 +45,8 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
     if (Array.isArray(redirs)) {
       redir = redirs[0] as string;
     } else redir = redirs as string;
-    console.log(redir);
     router.push(redir || { name: "Dashboard" });
   } else {
-    console.log(status, message);
     setFieldError("email", message);
     setFieldError("password", message);
   }

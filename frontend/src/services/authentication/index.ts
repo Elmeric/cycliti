@@ -1,5 +1,7 @@
 import qs from "qs";
+
 import http from "@/services/api";
+
 import type { ApiResponse } from "@/services/types";
 import type { UserOut, Token } from "@/models/User";
 
@@ -17,11 +19,17 @@ import type { UserOut, Token } from "@/models/User";
 //   return error.name === "AuthError";
 // }
 
-async function authenticate(user: UserOut) {
+async function authenticate(user: UserOut): Promise<ApiResponse<Token>> {
   const data = qs.stringify(user);
-  return await http.post<Token>("/login/access-token", data, {
+  const resp = await http.post<Token>("/login/access-token", data, {
     headers: { "Content-Encoding": "application/x-www-form-urlencoded" },
   });
+  return {
+    success: true,
+    content: resp.data,
+    status: resp.status,
+    message: "",
+  };
 }
 
 export default {

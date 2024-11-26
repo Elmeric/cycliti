@@ -1,7 +1,8 @@
-import { isAxiosError } from "axios";
 import { defineStore } from "pinia";
 import { router } from "@/router";
+
 import { API } from "@/services";
+
 import type { Token } from "@/models/User";
 import type { ApiResponse } from "@/services/types";
 
@@ -34,6 +35,16 @@ export default defineStore({
 
   getters: {
     isAuthenticated: (state) => state.token !== null,
+
+    authHeader(): Record<string, string> {
+      // return auth header with jwt if user is logged in and request is to the api url
+      const isLoggedIn = this.isAuthenticated;
+      if (isLoggedIn) {
+        return { Authorization: `Bearer ${this.token?.access_token}` };
+      } else {
+        return {};
+      }
+    },
   },
 
   actions: {
@@ -55,36 +66,13 @@ export default defineStore({
       username: string,
       password: string,
       keepMe: boolean = false
-    ): Promise<ApiResponse<null>> {
-      const result: ApiResponse<null> = { success: false, content: null };
+    ): Promise<ApiResponse<Token | null>> {
       try {
-        // TODO: check whether the email exist in DB and is inactive. If so, 
-        // propose to activate the account or to re-send an activation email.
-        // To be limited to 3 attempts... 
-        const resp = await API.auth.authenticate({ username, password });
-        this.setToken(resp.data, keepMe);
-        result.success = true;
-      } catch (error) {
-        if (isAxiosError(error)) {
-          if (error.response) {
-            // Request made but the server responded with an error
-            console.log(error.response.status, error.response.data);
-            result.status = error.response.status;
-            result.message = error.response.data.detail;
-          } else if (error.request) {
-            // Request made but no response is received from the server.
-            console.log(error.request);
-            result.message = "No response from server. Try later.";
-          } else {
-            // Error occured while setting up the request
-            console.log("Error", error.message);
-            result.status = 500;
-          }
-        } else {
-          result.status = 500;
-        }
-      } finally {
+        const result = await API.auth.authenticate({ username, password });
+        this.setToken(result.content, keepMe);
         return result;
+      } catch (error) {
+        return API.handleError(error);
       }
     },
 

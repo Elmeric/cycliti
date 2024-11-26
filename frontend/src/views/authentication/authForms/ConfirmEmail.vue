@@ -6,7 +6,7 @@ import { toTypedSchema } from "@vee-validate/yup";
 import * as yup from "yup";
 
 import { useUserStore } from "@/stores";
-import ConfirmDialog from "@/components/ConfirmationDialog.vue"
+import ConfirmDialog from "@/components/ConfirmationDialog.vue";
 
 const props = defineProps<{
   token: string;
@@ -29,6 +29,7 @@ const { meta, errors, handleSubmit, isSubmitting, defineField } = useForm({
 const [email, emailAttrs] = defineField("email");
 const router = useRouter();
 const dialog = ref(false);
+const text = ref("");
 
 const onSubmit = handleSubmit(async (values, { setFieldError }) => {
   const userStore = useUserStore();
@@ -37,7 +38,8 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
     props.token ?? ""
   );
   if (success) {
-    dialog.value = true
+    dialog.value = true;
+    text.value = message;
   } else {
     console.log(status, message);
     setFieldError("email", message);
@@ -53,7 +55,7 @@ function onConfirm() {
 
 <template>
   <h3 class="text-h3 text-primary text-center mb-0">Activate your account</h3>
-  
+
   <form @submit="onSubmit" class="mt-7">
     <div class="mb-6">
       <div
@@ -90,10 +92,10 @@ function onConfirm() {
     ></v-btn>
   </form>
 
-  <ConfirmDialog 
+  <ConfirmDialog
     v-model="dialog"
     title="Wellcome to Cycliti!"
-    text="Your account is now activated. Log in and enjoy Cycliti!"
+    :text="text"
     @close="onConfirm"
   ></ConfirmDialog>
 </template>
