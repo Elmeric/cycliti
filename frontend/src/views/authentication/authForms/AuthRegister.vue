@@ -6,7 +6,6 @@ import { toTypedSchema } from "@vee-validate/yup";
 import * as yup from "yup";
 
 import { useUserStore } from "@/stores";
-import ConfirmDialog from "@/components/ConfirmationDialog.vue";
 
 const schema = toTypedSchema(
   yup.object({
@@ -32,7 +31,6 @@ const [password, passwordAttrs] = defineField("password");
 const router = useRouter();
 const isVisiblePwd = ref(false);
 const isValidEmail = useIsFieldValid("email");
-const showConfirmDialog = ref(false);
 
 // watch(email, (newValue) => {
 //       username.value = `${newValue.split("@")[0]}`;
@@ -49,7 +47,10 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
     values.password
   );
   if (success) {
-    showConfirmDialog.value = true;
+    router.push({
+      name: "Home",
+      query: { msg: message },
+    });
   } else {
     console.log(status, message);
     setFieldError("email", message);
@@ -59,23 +60,19 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
 });
 
 async function onResend() {
-  // Call the resend-password api via the userStore and show confirmation dialog
   console.log("onResend");
   const userStore = useUserStore();
   const { success, status, message } = await userStore.resendEmail(email.value ?? "");
   console.log("onResend: ", success);
   if (success) {
-    showConfirmDialog.value = true;
+    router.push({
+      name: "Home",
+      query: { msg: message },
+    });
   } else {
     console.log(status, message);
     setFieldError("email", message);
   }
-}
-
-function onConfirm() {
-  // Close pop-up dialog and redirect to the landing page
-  showConfirmDialog.value = false;
-  router.push({ name: "Home" });
 }
 </script>
 
@@ -196,11 +193,4 @@ function onConfirm() {
       </router-link>
     </div>
   </form>
-
-  <ConfirmDialog
-    v-model="showConfirmDialog"
-    title="One step closer to Cycliti!"
-    text="A link to activate your account has been emailed to the address you provided."
-    @close="onConfirm"
-  ></ConfirmDialog>
 </template>

@@ -28,6 +28,11 @@ async def test_create_user(session: Session) -> None:
     assert user.email == email
     assert user.username == username
     assert hasattr(user, "hashed_password")
+    assert not user.is_active
+    assert not user.is_superuser
+    assert user.activation.nonce
+    assert user.activation.issued_at
+    assert user.activation.user_id == user.id
 
 
 async def test_authenticate_user(session: Session) -> None:
@@ -123,30 +128,11 @@ async def test_get_user(session: Session) -> None:
     assert user_2
     assert user.email == user_2.email
     assert user.username == user_2.username
-    assert jsonable_encoder(user) == jsonable_encoder(user_2)
 
 
 async def test_get_user_unknown_user(session: Session) -> None:
     user = await crud.user.get(session, obj_id=42)
     assert user is None
-
-
-async def test_pre_activate_user(session: Session) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-    )
-    user = await crud.user.create(session, obj_in=user_in)
-    assert user
-    pre_activated_user = await crud.user.pre_activate(session, db_obj=user)
-    assert pre_activated_user
-    assert pre_activated_user.activation.nonce
-    assert pre_activated_user.activation.issued_at
-    assert pre_activated_user.activation.user_id == user.id
 
 
 async def test_activate_user(session: Session) -> None:

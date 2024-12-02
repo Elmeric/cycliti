@@ -74,5 +74,27 @@ export default defineStore({
         return API.handleError(error);
       }
     },
+
+    async forgotPassword(
+      email: string,
+    ): Promise<ApiResponse<Msg | null>> {
+      try {
+        return await API.users.forgotPassword(email);
+      } catch (error) {
+        return API.handleError(error);
+      }
+    },
+
+    async resetPassword(
+      email: string,
+      password: string,
+      nonce: string
+    ): Promise<ApiResponse<Msg | null>> {
+      try {
+        return await API.users.resetPassword(email, password, nonce);
+      } catch (error) {
+        return API.handleError(error);
+      }
+    },
   },
 });

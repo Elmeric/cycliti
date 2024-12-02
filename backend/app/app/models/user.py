@@ -44,6 +44,12 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    password_reset: Mapped["PasswordReset"] = relationship(
+        init=False,
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
 
 class Activation(Base):
     # pylint: disable=too-few-public-methods
@@ -56,6 +62,25 @@ class Activation(Base):
 
     user: Mapped["User"] = relationship(
         back_populates="activation",
+        init=False,
+        single_parent=True,
+    )
+
+    __table_args__ = (UniqueConstraint("user_id"),)
+
+
+class PasswordReset(Base):
+    # pylint: disable=too-few-public-methods
+    __tablename__ = "password_reset"
+
+    id: Mapped[intpk] = mapped_column(init=False)
+    nonce: Mapped[str] = mapped_column(Text)
+    issued_at: Mapped[int] = mapped_column(Integer)
+    attempts: Mapped[int] = mapped_column(Integer)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), init=False)
+
+    user: Mapped["User"] = relationship(
+        back_populates="password_reset",
         init=False,
         single_parent=True,
     )

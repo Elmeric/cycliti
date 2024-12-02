@@ -1,10 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.config import settings
+from core.security import verify_password
 from schemas import UserCreate
 from tests.utils.utils import random_email, random_lower_string
 from utils import generate_nonce
@@ -120,73 +122,62 @@ def test_use_access_token_unknowk_user(
 #
 # Path: /password-recovery/{email}
 #
-def test_recover_password_success(client: TestClient) -> None:
+def test_forgot_password_four_attempts(client: TestClient) -> None:
+    # First attempt
     email = settings.FIRST_SUPERUSER_EMAIL
-    r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 200
     msg = r.json()
     assert "msg" in msg
-    assert msg["msg"].startswith("If that email address is in our database, "
-                                 "we will send you an email to reset your password.")
+    assert msg["msg"].startswith(
+        "If there is a Cycliti account associated with the address you provided, "
+        "we will send you an e-mail with instructions on how to reset your password."
+    )
+    # Second attempt
+    email = settings.FIRST_SUPERUSER_EMAIL
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    assert r.status_code == 200
+    msg = r.json()
+    assert "msg" in msg
+    assert msg["msg"].startswith(
+        "If there is a Cycliti account associated with the address you provided, "
+        "we will send you an e-mail with instructions on how to reset your password."
+    )
+    # Third attempts
+    email = settings.FIRST_SUPERUSER_EMAIL
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    assert r.status_code == 200
+    msg = r.json()
+    assert "msg" in msg
+    assert msg["msg"].startswith(
+        "If there is a Cycliti account associated with the address you provided, "
+        "we will send you an e-mail with instructions on how to reset your password."
+    )
+    # Fourth attempts, failed
+    email = settings.FIRST_SUPERUSER_EMAIL
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    assert r.status_code == 403
+    assert "You don't have permission to access this resource" in r.text
 
 
-def test_recover_password_unknown_user(client: TestClient) -> None:
+def test_forgot_password_unknown_user(client: TestClient) -> None:
     email = random_email()
-    r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 200
     msg = r.json()
     assert "msg" in msg
-    assert msg["msg"].startswith("If that email address is in our database, "
-                                 "we will send you an email to reset your password.")
+    assert msg["msg"].startswith(
+        "If there is a Cycliti account associated with the address you provided, "
+        "we will send you an e-mail with instructions on how to reset your password."
+    )
 
 
 #
 # Path: /reset-password
 #
-def test_reset_password_success(client: TestClient) -> None:
-    email = settings.FIRST_SUPERUSER_EMAIL
-    r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
-    assert r.status_code == 200
-    token = generate_nonce()
-    body_data = {
-        "token": token,
-        "new_password": "ericeric",
-    }
-    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
-    assert r.status_code == 200
-    msg = r.json()
-    assert "msg" in msg
-    assert msg["msg"] == "Password updated successfully."
-
-
-def test_reset_password_invalid_token(client: TestClient) -> None:
-    body_data = {
-        "token": random_lower_string(32),
-        "new_password": random_lower_string(8),
-    }
-    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
-    assert r.status_code == 403
-    assert "You don't have permission to access this resource" in r.text
-
-
-def test_reset_password_unknown_user(
-        client: TestClient,
-        mock_verify_password_reset_token_unknown_sub
+async def test_reset_password_success(
+        client: TestClient, mock_generate_nonce, session: Session
 ) -> None:
-    email = settings.FIRST_SUPERUSER_EMAIL
-    r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
-    assert r.status_code == 200
-    token = generate_nonce()
-    body_data = {
-        "token": token,
-        "new_password": "ericeric",
-    }
-    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
-    assert r.status_code == 403
-    assert "You don't have permission to access this resource." in r.text
-
-
-async def test_reset_password_inactive_user(session: Session, client: TestClient) -> None:
     email = random_email()
     username = random_lower_string(8)
     password = random_lower_string(32)
@@ -194,34 +185,153 @@ async def test_reset_password_inactive_user(session: Session, client: TestClient
         email=email,
         username=username,
         password=SecretStr(password),
+        is_active=True,
     )
     user = await crud.user.create(session, obj_in=user_in)
-
-    r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
+    assert user.is_active
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 200
-    token = generate_nonce()
     body_data = {
-        "token": token,
-        "new_password": "changeme",
+        "email": email,
+        "new_password": "ericeric",
+        "nonce": "NONCE",
     }
-
     r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
-    assert r.status_code == 403
-    assert f"You don't have permission to access this resource" in r.text
+    assert r.status_code == 200
+    msg = r.json()
+    assert "msg" in msg
+    assert msg["msg"] == "Password updated successfully."
+    user = await crud.user.get_by_email(session, email=email)
+    assert verify_password("ericeric", user.hashed_password)
 
 
-def test_reset_password_db_server_error(
-        session: Session,
+async def test_reset_password_unknown_user(
+        client: TestClient, mock_generate_nonce, session: Session
+) -> None:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+        is_active=True,
+    )
+    user = await crud.user.create(session, obj_in=user_in)
+    assert user.is_active
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    assert r.status_code == 200
+    body_data = {
+        "email": random_email(),
+        "new_password": "ericeric",
+        "nonce": "NONCE",
+    }
+    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
+    assert r.status_code == 400
+    assert "Password reset failed; Invalid user ID or token." in r.text
+
+
+async def test_reset_password_inactive_user(
+        session: Session, client: TestClient, mock_generate_nonce
+) -> None:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+        is_active=False,
+    )
+    user = await crud.user.create(session, obj_in=user_in)
+    assert not user.is_active
+
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    assert r.status_code == 200
+
+    body_data = {
+        "email": email,
+        "new_password": "changeme",
+        "nonce": "NONCE",
+    }
+    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
+    assert r.status_code == 400
+    assert "Password reset failed; Invalid user ID or token." in r.text
+
+
+async def test_reset_password_no_password_reset(
+        client: TestClient, mock_generate_nonce, session: Session
+) -> None:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+        is_active=True,
+    )
+    user = await crud.user.create(session, obj_in=user_in)
+    assert not user.password_reset
+    body_data = {
+        "email": email,
+        "new_password": "ericeric",
+        "nonce": "NONCE",
+    }
+    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
+    assert r.status_code == 400
+    assert "Password reset failed; Invalid user ID or token." in r.text
+
+
+async def test_reset_password_invalid_nonce(
+        client: TestClient, session: Session
+) -> None:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+        is_active=True,
+    )
+    user = await crud.user.create(session, obj_in=user_in)
+    assert user.is_active
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    assert r.status_code == 200
+    body_data = {
+        "email": email,
+        "new_password": "ericeric",
+        "nonce": "FAKE",
+    }
+    r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
+    assert r.status_code == 400
+    assert "Password reset failed; Invalid user ID or token." in r.text
+
+
+async def test_reset_password_db_server_error(
+        session:Session,
         client: TestClient,
         mock_change_password_commit_failed,
+        mock_generate_nonce,
 ) -> None:
-    email = settings.FIRST_SUPERUSER_EMAIL
-    r = client.post(f"{settings.API_V1_STR}/password-recovery/{email}")
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+        is_active=True,
+    )
+    user = await crud.user.create(session, obj_in=user_in)
+    assert user.is_active
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 200
-    token = generate_nonce()
     body_data = {
-        "token": token,
+        "email": email,
         "new_password": "ericeric",
+        "nonce": "NONCE",
     }
     r = client.post(f"{settings.API_V1_STR}/reset-password/", json=body_data)
     assert r.status_code == 500

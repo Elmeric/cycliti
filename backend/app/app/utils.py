@@ -27,7 +27,7 @@ def send_email(
         settings.EMAILS_FROM_DOMAIN
     )
     msg["to"] = email_to
-    msg.set_content(environment["link"])
+    msg.set_content(environment["link"], charset='utf-8', cte='7bit')
 
     with smtplib.SMTP(host="localhost", port=1025) as server:
         server.send_message(msg)
@@ -73,13 +73,14 @@ def send_email(
 #     )
 
 
-def send_reset_password_email(email_to: str, email: str, token: str) -> str:
+def send_reset_password_email(email_to: str, email: str, nonce: str) -> str:
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - Password recovery for user {email}"
     # with open(Path(settings.EMAIL_TEMPLATES_DIR) / "reset_password.html") as f:
     #     template_str = f.read()
     server_host = settings.SERVER_HOST
-    link = f"{server_host}reset-password?token={token}"
+    link = f"{server_host}auth/reset-password?nonce={nonce}"
+    print(f"Sending email reset password: {link}", nonce)
     send_email(
         email_to=email_to,
         subject_template=subject,
@@ -92,16 +93,16 @@ def send_reset_password_email(email_to: str, email: str, token: str) -> str:
             "link": link,
         },
     )
-    return token
+    return nonce
 
 
-def send_account_activation_email(email_to: str, email: str, token: str) -> str:
+def send_account_activation_email(email_to: str, email: str, nonce: str) -> str:
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - Account activation for user {email}"
     # with open(Path(settings.EMAIL_TEMPLATES_DIR) / "account_activation.html") as f:
     #     template_str = f.read()
     server_host = settings.SERVER_HOST
-    link = f"{server_host}auth/activate?token={token}"
+    link = f"{server_host}auth/activate?nonce={nonce}"
     send_email(
         email_to=email_to,
         subject_template=subject,
@@ -114,7 +115,7 @@ def send_account_activation_email(email_to: str, email: str, token: str) -> str:
             "link": link,
         },
     )
-    return token
+    return nonce
 
 
 def generate_nonce() -> str:

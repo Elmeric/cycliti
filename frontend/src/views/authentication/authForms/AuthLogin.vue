@@ -30,6 +30,7 @@ const [keepMe, keepMeAttrs] = defineField("keepMe");
 const router = useRouter();
 const route = useRoute();
 const isVisiblePwd = ref(false);
+const showMessage = ref(route.query.msg ? true : false);
 
 const onSubmit = handleSubmit(async (values, { setFieldError }) => {
   const authStore = useAuthStore();
@@ -51,12 +52,34 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
     setFieldError("password", message);
   }
 });
-
 </script>
 
 <template>
-  <h3 class="text-h3 text-primary text-center mb-0">Log in</h3>
-  
+  <h3 class="text-h3 text-primary text-center">Log in</h3>
+
+  <v-row v-if="showMessage" class="position-relative mt-4 mb-0">
+    <v-col cols="12" class="d-flex align-center pa-0">
+      <v-container fluid min-height="6rem" class="pa-0">
+        <v-snackbar
+          class="d-flex ma-0"
+          v-model="showMessage"
+          timeout="4000"
+          timer
+          open-on-hover
+          close-on-content-click
+          close-delay="4000"
+          location="top"
+          contained
+          multi-line
+          color="primary"
+          variant="tonal"
+        >
+          {{ $route.query.msg }}
+        </v-snackbar>
+      </v-container>
+    </v-col>
+  </v-row>
+
   <form @submit="onSubmit" class="mt-7">
     <div class="mb-6">
       <div
@@ -88,7 +111,10 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
         class="d-flex align-center justify-space-between text-subtitle-1 text-medium-emphasis"
       >
         Password
-        <router-link to="/auth/login" class="text-primary text-decoration-none">
+        <router-link
+          to="/auth/forgot-password"
+          class="text-primary text-decoration-none"
+        >
           Forgot Password?
         </router-link>
       </div>

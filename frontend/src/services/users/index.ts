@@ -22,7 +22,7 @@ async function createUser(user: UserCreate): Promise<ApiResponse<Msg>> {
     success: true,
     content: resp.data,
     status: resp.status,
-    message: "",
+    message: resp.data.msg,
   };
 }
 
@@ -32,7 +32,7 @@ async function resendEmail(email: string): Promise<ApiResponse<Msg>> {
     success: true,
     content: resp.data,
     status: resp.status,
-    message: "",
+    message: resp.data.msg,
   };
 }
 
@@ -50,9 +50,35 @@ async function activate(email: string, token: string): Promise<ApiResponse<Msg>>
   };
 }
 
+async function forgotPassword(email: string): Promise<ApiResponse<Msg>> {
+  const resp = await http.post<Msg>(`/forgot-password/${email}`);
+  return {
+    success: true,
+    content: resp.data,
+    status: resp.status,
+    message: resp.data.msg,
+  };
+}
+
+async function resetPassword(
+  email: string,
+  new_password: string,
+  nonce: string
+): Promise<ApiResponse<Msg>> {
+  const resp = await http.post<Msg>("/reset-password", { email, new_password, nonce });
+  return {
+    success: true,
+    content: resp.data,
+    status: resp.status,
+    message: resp.data.msg,
+  };
+}
+
 export default {
   getCurrentUser,
   createUser,
   resendEmail,
   activate,
+  forgotPassword,
+  resetPassword,
 };

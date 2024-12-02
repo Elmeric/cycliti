@@ -28,7 +28,7 @@ def test_create_user(client: TestClient):
     msg = response.json()
     assert "msg" in msg
     assert msg["msg"] == ("A link to activate your account has been emailed "
-                          "to the address provided.")
+                          "to the address you provided.")
 
 
 def test_create_user_same_email(client: TestClient):
@@ -77,7 +77,7 @@ def test_create_user_same_username(client: TestClient):
     msg = response.json()
     assert "msg" in msg
     assert msg["msg"] == ("A link to activate your account has been emailed "
-                          "to the address provided.")
+                          "to the address you provided.")
 
 
 # def test_create_user_error(client: TestClient, mock_commit):

@@ -1,9 +1,41 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+const showMessage = ref(route.query.msg ? true : false);
+
+</script>
+
 <template>
   <v-icon icon="mdi-bike" color="primary" size="x-large"></v-icon>
 
   <h2 class="text-h4 font-weight-black text-primary mb-4">
     Welcome on Cycliti!
   </h2>
+
+  <v-row v-if="showMessage" class="position-relative mt-4 mb-0">
+    <v-col cols="12" class="d-flex align-center pa-0">
+      <v-container fluid min-height="6rem" class="pa-0">
+        <v-snackbar
+          class="d-flex ma-0"
+          v-model="showMessage"
+          timeout="4000"
+          timer
+          open-on-hover
+          close-on-content-click
+          close-delay="4000"
+          location="top"
+          contained
+          multi-line
+          color="primary"
+          variant="tonal"
+        >
+          {{ $route.query.msg }}
+        </v-snackbar>
+      </v-container>
+    </v-col>
+  </v-row>
 
   <div class="text-h5 font-weight-medium mb-10">
     Sign up to plan your next circuit. Enjoy!

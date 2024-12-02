@@ -73,10 +73,10 @@ async def create_user(
             detail=f"An error occur, please retry."
         )
     send_account_activation_email(
-        email_to=user.email, email=user_in.email, token=user.activation.nonce
+        email_to=user.email, email=user_in.email, nonce=user.activation.nonce
     )
     return {"msg": "A link to activate your account has been emailed "
-                   "to the address provided."}
+                   "to the address you provided."}
 
 
 @router.post(
@@ -94,8 +94,8 @@ async def resend_activation_email(
     user = await crud.user.get_by_email(db, email=email)
     if not user or user.is_active or not user.activation:
         raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You don't have permission to access this resource.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to access this resource.",
     )
     try:
         user = await crud.user.update_activation(db, db_obj=user)
@@ -105,7 +105,7 @@ async def resend_activation_email(
             detail=f"An error occur, please retry."
         )
     send_account_activation_email(
-        email_to=user.email, email=email, token=user.activation.nonce
+        email_to=user.email, email=email, nonce=user.activation.nonce
     )
     return {"msg": "A link to activate your account has been emailed "
                    "to the address provided."}

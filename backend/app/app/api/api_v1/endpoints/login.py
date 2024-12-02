@@ -10,9 +10,8 @@ from app.api import deps
 from app.core import security
 from app.config import settings
 from app.utils import (
-    generate_nonce,
     send_reset_password_email,
-    verify_password_reset_token,
+    verify_password_reset_nonce,
 )
 
 router = APIRouter()
@@ -39,6 +38,20 @@ async def get_access_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Login failed; Invalid user ID or password."
         )
+    # TODO: return exception (Locked user) if user.login_failed counter exceeds a thredhold (3)
+    # elif user.login_failed >= 3:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="You're locked out of the system due to too many attempts. Contact your admin.."
+    #     )
+    # Login success: reset any pending reset password requests
+    try:
+        await crud.user.reset_password_reset(db, db_obj=user)
+    except crud.CrudError:
+        # TODO: Log the error
+        print(f"Login succes for user: {user.email} but cannot reset "
+              f"its password_reset entry")
+        pass
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return schemas.Token(
         access_token=security.create_access_token(
@@ -58,45 +71,81 @@ def test_token(
     return current_user
 
 
-@router.post("/password-recovery/{email}", response_model=schemas.Msg)
-async def recover_password(email: str, db: Session = Depends(deps.get_db)) -> Any:
+@router.post("/forgot-password/{email}", response_model=schemas.Msg)
+async def forgot_password(email: str, db: Session = Depends(deps.get_db)) -> Any:
     """
     Password Recovery
     """
     user = await crud.user.get_by_email(db, email=email)
 
     if user:
-        password_reset_token = generate_nonce()
+        if password_reset := user.password_reset:
+            # A previous password reset attempt exists
+            if (attemps := password_reset.attempts) < settings.PASSWORD_RECOVERY_MAX_ATTEMPTS:
+                # Max attempts not reached, update the password reset table
+                try:
+                    user = await crud.user.update_password_reset(
+                        db, db_obj=user, attempts=attemps + 1
+                    )
+                except crud.CrudError:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"An error occur, please retry."
+                    )
+            else:   # Max attempts reached: return a Bad Request status
+                # TODO: Lock the user for at least 24 hours
+                # TODO: Add a background task that reset password reset older than 24 hours
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"You don't have permission to access this resource."
+                )
+        else:   # First attempt: create a password reset entry
+            try:
+                user = await crud.user.create_password_reset(db, db_obj=user)
+            except crud.CrudError:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"An error occur, please retry."
+                )
+        print(f"Reset password nonce: {user.password_reset.nonce}")
         send_reset_password_email(
-            email_to=user.email, email=email, token=password_reset_token
+            email_to=user.email, email=email, nonce=user.password_reset.nonce
         )
-    return {"msg": "If that email address is in our database, "
-                   "we will send you an email to reset your password."}
+    return {
+        "msg": "If there is a Cycliti account associated with the address "
+               "you provided, we will send you an e-mail with instructions "
+               "on how to reset your password."
+    }
 
 
 @router.post("/reset-password/", response_model=schemas.Msg)
 async def reset_password(
-    token: Annotated[str, Body()],
+    email: Annotated[str, Body()],
     new_password: Annotated[str, Body()],
+    nonce: Annotated[str, Body()],
     db: Session = Depends(deps.get_db),
 ) -> Any:
     """
     Reset password
     """
     credentials_exception = HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You don't have permission to access this resource.",
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Password reset failed; Invalid user ID or token.",
     )
-    email = verify_password_reset_token(token)
-    if not email:
-        raise credentials_exception
     user = await crud.user.get_by_email(db, email=email)
-    if not user:
+    if not user or not user.is_active:
         raise credentials_exception
-    elif not crud.user.is_active(user):
+    if not user.password_reset:
+        raise credentials_exception
+    expected_nonce = user.password_reset.nonce
+    issued_at = user.password_reset.issued_at
+    valid = verify_password_reset_nonce(nonce, expected_nonce, issued_at)
+    if not valid:
         raise credentials_exception
     try:
-        await crud.user.change_password(db, user_db=user, new_password=new_password)
+        await crud.user.change_password(
+            db, user_db=user, new_password=new_password, reset=True
+        )
     except (crud.CrudError, Exception) as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

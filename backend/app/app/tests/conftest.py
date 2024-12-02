@@ -158,6 +158,16 @@ def mock_create_token_unknown_sub(monkeypatch):
 
 
 @pytest.fixture
+def mock_generate_nonce(monkeypatch):
+    def _generate_nonce() -> str:
+        return "NONCE"
+
+    monkeypatch.setattr(
+        sys.modules["app.crud.user"], "generate_nonce", _generate_nonce
+    )
+
+
+@pytest.fixture
 def mock_verify_password_reset_token_unknown_sub(monkeypatch):
     def _verify_token(token) -> str:
         # decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])

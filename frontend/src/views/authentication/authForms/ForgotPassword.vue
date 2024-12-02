@@ -6,11 +6,6 @@ import * as yup from "yup";
 
 import { useUserStore } from "@/stores";
 
-const props = defineProps<{
-  nonce: string;
-}>();
-console.log("Nonce: ", props.nonce);
-
 const schema = toTypedSchema(
   yup.object({
     email: yup.string().email().required(),
@@ -29,10 +24,7 @@ const router = useRouter();
 
 const onSubmit = handleSubmit(async (values, { setFieldError }) => {
   const userStore = useUserStore();
-  const { success, status, message } = await userStore.activate(
-    values.email,
-    props.nonce ?? ""
-  );
+  const { success, status, message } = await userStore.forgotPassword(values.email);
   if (success) {
     router.push({
       name: "Login",
@@ -46,15 +38,14 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
 </script>
 
 <template>
-  <h3 class="text-h3 text-primary text-center mb-0">Activate your account</h3>
+  <h3 class="text-h3 text-primary text-center mb-0">Reset your password</h3>
 
   <form @submit="onSubmit" class="mt-7">
+    <div class="text-h6 mb-6">
+      Enter your e-mail address below and we'll send you a link with instructions.
+    </div>
+
     <div class="mb-6">
-      <div
-        class="d-flex align-center justify-space-between text-subtitle-1 text-medium-emphasis"
-      >
-        E-mail
-      </div>
       <v-text-field
         aria-label="email address"
         v-model="email"
@@ -80,7 +71,7 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
       :loading="isSubmitting"
       :disabled="!meta.valid"
       class="mt-5"
-      text="Confirm email"
+      text="Send"
     ></v-btn>
   </form>
 </template>

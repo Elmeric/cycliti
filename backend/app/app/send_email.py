@@ -61,7 +61,7 @@ if __name__ == '__main__':
     send_account_activation_email(
         email_to="moi.nous@eux.fr",
         email="moi.nous@eux.fr",
-        token="UnSuperJeton"
+        nonce="UnSuperJeton"
     )
     # email = verify_account_activation_token("3DeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXV=CJ9.eyJleHAiOjE3MzIzMTg1MjYsIm5iZiI6MTczMjMxNDkyNiwic3ViIjoiZXJpay5sZW1vaW5lQ=GZyZWUuZnIifQ.ieRzSBILgg4urJM-KdBGzIEWJJ4Xhv2fkLXdiXC24G4")
     # print(email)

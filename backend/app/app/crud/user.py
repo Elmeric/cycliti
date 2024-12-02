@@ -10,9 +10,8 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase, CrudError, CrudIntegrityError
-from app.models.user import Activation, User
+from app.models.user import Activation, User, PasswordReset
 from app.schemas.user import UserCreate, UserUpdate
-from tests.api.api_v1.test_login import test_reset_password_success
 from utils import generate_nonce
 
 
@@ -38,6 +37,54 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         print(f"Nonce: {nonce}")
         print(f"Timestamp: {timestamp}")
         db_obj.activation = Activation(nonce=nonce, issued_at=timestamp)
+        db.add(db_obj)
+        try:
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise CrudError() from exc
+        db.refresh(db_obj)
+        return db_obj
+
+    async def create_password_reset(
+            self, db: Session, *, db_obj: User
+    ) -> User:
+        nonce = generate_nonce()
+        timestamp = int(dt.timestamp(dt.now(timezone.utc)))
+        print(f"Nonce: {nonce}")
+        print(f"Timestamp: {timestamp}")
+        db_obj.password_reset = PasswordReset(
+            nonce=nonce, issued_at=timestamp, attempts=1
+        )
+        db.add(db_obj)
+        try:
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise CrudError() from exc
+        db.refresh(db_obj)
+        return db_obj
+
+    async def update_password_reset(
+            self, db: Session, *, db_obj: User, attempts: int
+    ) -> User:
+        nonce = generate_nonce()
+        timestamp = int(dt.timestamp(dt.now(timezone.utc)))
+        print(f"Nonce: {nonce}")
+        print(f"Timestamp: {timestamp}")
+        db_obj.password_reset.nonce = nonce
+        db_obj.password_reset.issued_at = timestamp
+        db_obj.password_reset.attempts = attempts
+        try:
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise CrudError() from exc
+        db.refresh(db_obj)
+        return db_obj
+
+    async def reset_password_reset(self, db: Session, *, db_obj: User) -> User:
+        db_obj.password_reset = None
         db.add(db_obj)
         try:
             db.commit()
@@ -80,6 +127,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         if not user_db:
             return None
         if not verify_password(password, user_db.hashed_password):
+            # TODO: Increment a "login_failed" counter for user_db in database
             return None
         return user_db
 
@@ -93,9 +141,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db.rollback()
             raise CrudError() from exc
 
-    async def change_password(self, db: Session, *, user_db: User, new_password: str):
+    async def change_password(
+            self, db: Session, *, user_db: User, new_password: str, reset: bool
+    ):
         hashed_password = get_password_hash(new_password)
         user_db.hashed_password = hashed_password
+        if reset:
+            user_db.password_reset = None
         db.add(user_db)
         try:
             db.commit()
