@@ -1,22 +1,18 @@
 import pytest
-from fastapi.encoders import jsonable_encoder
 from pydantic import SecretStr
 from sqlalchemy.orm import Session
 
 from app import crud
-from app.core.security import verify_password
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate
 from app.tests.utils.utils import random_email, random_lower_string
 from config import settings
-from crud import CrudError
 
 
 async def test_init_db(session: Session):
-    user = await crud.user.get_by_email(session, email=settings.FIRST_SUPERUSER_EMAIL)
+    user = await crud.user.get_by_email(session, email=settings.FIRST_USER_EMAIL)
     assert user is not None
-    assert user.username == settings.FIRST_SUPERUSER_USERNAME
+    assert user.username == settings.FIRST_USER_USERNAME
     assert user.is_active
-    assert user.is_superuser
 
 
 async def test_create_user(session: Session) -> None:
@@ -29,7 +25,6 @@ async def test_create_user(session: Session) -> None:
     assert user.username == username
     assert hasattr(user, "hashed_password")
     assert not user.is_active
-    assert not user.is_superuser
     assert user.activation.nonce
     assert user.activation.issued_at
     assert user.activation.user_id == user.id
@@ -68,20 +63,6 @@ async def test_check_if_user_is_active_inactive(
 ) -> None:
     is_active = crud.user.is_active(random_user)
     assert is_active is False
-
-
-async def test_check_if_user_is_superuser(
-        session: Session, random_superuser
-) -> None:
-    is_superuser = crud.user.is_superuser(random_superuser)
-    assert is_superuser is True
-
-
-async def test_check_if_user_is_superuser_normal_user(
-        session: Session, random_user
-) -> None:
-    is_superuser = crud.user.is_superuser(random_user)
-    assert is_superuser is False
 
 
 async def test_get_user(session: Session, random_user) -> None:

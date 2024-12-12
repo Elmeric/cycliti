@@ -29,7 +29,7 @@ const { isLoading } = storeToRefs(uiStore);
   <v-toolbar color="surface" density="default" flat class="px-2 text-primary">
     <v-toolbar-title class="text-h4 font-weight-black">
       <RouterLink
-        :to="{ name: 'Home' }"
+        :to="{ name: 'Landing' }"
         aria-label="logo"
         class="text-h4 font-weight-black text-primary text-decoration-none"
       >

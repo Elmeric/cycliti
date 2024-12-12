@@ -40,7 +40,6 @@ class User(Base):
     preferred_language: Mapped[str] = mapped_column(String(10), default="fr-FR")
     access_type: Mapped[int] = mapped_column(Integer, default=1)
     is_active: Mapped[bool] = mapped_column(default=False)
-    is_superuser: Mapped[bool] = mapped_column(default=False)
     failed_logins: Mapped[int] = mapped_column(Integer, init=False, default=0)
 
     activation: Mapped["Activation"] = relationship(

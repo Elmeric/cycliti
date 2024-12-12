@@ -48,7 +48,7 @@ const onSubmit = handleSubmit(async (values, { setFieldError }) => {
   );
   if (success) {
     router.push({
-      name: "Home",
+      name: "Landing",
       query: { msg: message },
     });
   } else {
@@ -66,7 +66,7 @@ async function onResend() {
   console.log("onResend: ", success);
   if (success) {
     router.push({
-      name: "Home",
+      name: "Landing",
       query: { msg: message },
     });
   } else {

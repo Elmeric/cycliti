@@ -7,7 +7,6 @@ interface UserBase {
   email: string;
   username: string;
   is_active: boolean;
-  is_superuser: boolean;
 }
 
 export interface UserCreate extends UserBase {

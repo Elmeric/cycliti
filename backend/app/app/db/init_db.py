@@ -16,14 +16,13 @@ async def init_db(db: Session) -> None:
     # the tables un-commenting the next line
     # Base.metadata.create_all(bind=engine)
 
-    user = await crud.user.get_by_email(db, email=settings.FIRST_SUPERUSER_EMAIL)
+    user = await crud.user.get_by_email(db, email=settings.FIRST_USER_EMAIL)
     if not user:
         user_in = schemas.UserCreate(
-            email=settings.FIRST_SUPERUSER_EMAIL,
-            username=settings.FIRST_SUPERUSER_USERNAME,
-            password=settings.FIRST_SUPERUSER_PASSWORD,
+            email=settings.FIRST_USER_EMAIL,
+            username=settings.FIRST_USER_USERNAME,
+            password=settings.FIRST_USER_PASSWORD,
             is_active=True,
-            is_superuser=True,
         )
         user = await crud.user.create(db, obj_in=user_in)
     return user

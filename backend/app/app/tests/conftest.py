@@ -33,7 +33,7 @@ from app.config import settings
 from app.api.deps import get_db # noqa
 from app.db.init_db import init_db  # noqa
 from app.tests.utils.user import authentication_token_from_email
-from app.tests.utils.utils import get_superuser_token_headers
+from app.tests.utils.utils import get_first_user_token_headers
 
 
 @pytest.fixture(scope="session")
@@ -128,23 +128,9 @@ async def random_active_user(session: Session) -> models.User:
     return await crud.user.create(session, obj_in=user_in)
 
 
-@pytest_asyncio.fixture
-async def random_superuser(session: Session) -> models.User:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_superuser=True
-    )
-    return await crud.user.create(session, obj_in=user_in)
-
-
 @pytest.fixture
-def superuser_token_headers(client: TestClient) -> dict[str, str]:
-    return get_superuser_token_headers(client)
+def first_user_token_headers(client: TestClient) -> dict[str, str]:
+    return get_first_user_token_headers(client)
 
 
 @pytest.fixture

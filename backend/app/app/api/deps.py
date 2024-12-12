@@ -68,14 +68,3 @@ async def get_current_active_user(
             detail="You don't have permission to access this resource."
         )
     return current_user
-
-
-def get_current_active_superuser(
-    current_user: Annotated[models.User, Depends(get_current_user)],
-) -> models.User:
-    if not crud.user.is_superuser(current_user):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to access this resource."
-        )
-    return current_user

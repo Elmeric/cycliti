@@ -173,11 +173,8 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db.rollback()
             raise CrudError() from exc
 
-    def is_active(self, user: User) -> bool:
-        return user.is_active
-
-    def is_superuser(self, user: User) -> bool:
-        return user.is_superuser
+    def is_active(self, db_obj: User) -> bool:
+        return db_obj.is_active
 
 
 user = CRUDUser(User)

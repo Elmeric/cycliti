@@ -1,7 +1,5 @@
-import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
-from sqlalchemy.ext.asyncio import async_scoped_session
 from sqlalchemy.orm import Session
 
 from app import crud
@@ -9,7 +7,6 @@ from app.config import settings
 from core.security import verify_password
 from schemas import UserCreate
 from tests.utils.utils import random_email, random_lower_string
-from utils import generate_nonce
 
 
 #
@@ -17,8 +14,8 @@ from utils import generate_nonce
 #
 def test_get_access_token_success(client: TestClient) -> None:
     login_data = {
-        "username": settings.FIRST_SUPERUSER_EMAIL,
-        "password": settings.FIRST_SUPERUSER_PASSWORD,
+        "username": settings.FIRST_USER_EMAIL,
+        "password": settings.FIRST_USER_PASSWORD,
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 200
@@ -29,7 +26,7 @@ def test_get_access_token_success(client: TestClient) -> None:
 
 def test_get_access_token_invalid_password(client: TestClient) -> None:
     login_data = {
-        "username": settings.FIRST_SUPERUSER_EMAIL,
+        "username": settings.FIRST_USER_EMAIL,
         "password": random_lower_string(32),
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
@@ -40,7 +37,7 @@ def test_get_access_token_invalid_password(client: TestClient) -> None:
 def test_get_access_token_unknown_user(client: TestClient) -> None:
     login_data = {
         "username": random_email(),
-        "password": settings.FIRST_SUPERUSER_PASSWORD,
+        "password": settings.FIRST_USER_PASSWORD,
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 400
@@ -71,11 +68,11 @@ async def test_get_access_token_inactive_user(session: Session, client: TestClie
 # Path: /login/test-token
 #
 def test_use_access_token_success(
-    client: TestClient, superuser_token_headers: dict[str, str]
+    client: TestClient, first_user_token_headers: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/login/test-token",
-        headers=superuser_token_headers,
+        headers=first_user_token_headers,
     )
     assert r.status_code == 200
     result = r.json()
@@ -85,22 +82,22 @@ def test_use_access_token_success(
 def test_use_access_token_no_sub_claim(
     client: TestClient,
         mock_create_token_no_sub,
-        superuser_token_headers: dict[str, str],
+        first_user_token_headers: dict[str, str],
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/login/test-token",
-        headers=superuser_token_headers,
+        headers=first_user_token_headers,
     )
     assert r.status_code == 403
     assert "You don't have permission to access this resource" in r.text
 
 
 def test_use_access_token_expired_token(
-    client: TestClient, mock_datetime_now, superuser_token_headers: dict[str, str]
+    client: TestClient, mock_datetime_now, first_user_token_headers: dict[str, str]
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/login/test-token",
-        headers=superuser_token_headers,
+        headers=first_user_token_headers,
     )
     assert r.status_code == 403
     assert "You don't have permission to access this resource" in r.text
@@ -109,11 +106,11 @@ def test_use_access_token_expired_token(
 def test_use_access_token_unknowk_user(
         client: TestClient,
         mock_create_token_unknown_sub,
-        superuser_token_headers: dict[str, str],
+        first_user_token_headers: dict[str, str],
 ) -> None:
     r = client.post(
         f"{settings.API_V1_STR}/login/test-token",
-        headers=superuser_token_headers,
+        headers=first_user_token_headers,
     )
     assert r.status_code == 403
     assert "You don't have permission to access this resource" in r.text
@@ -124,7 +121,7 @@ def test_use_access_token_unknowk_user(
 #
 def test_forgot_password_four_attempts(client: TestClient) -> None:
     # First attempt
-    email = settings.FIRST_SUPERUSER_EMAIL
+    email = settings.FIRST_USER_EMAIL
     r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 200
     msg = r.json()
@@ -134,7 +131,7 @@ def test_forgot_password_four_attempts(client: TestClient) -> None:
         "we will send you an e-mail with instructions on how to reset your password."
     )
     # Second attempt
-    email = settings.FIRST_SUPERUSER_EMAIL
+    email = settings.FIRST_USER_EMAIL
     r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 200
     msg = r.json()
@@ -144,7 +141,7 @@ def test_forgot_password_four_attempts(client: TestClient) -> None:
         "we will send you an e-mail with instructions on how to reset your password."
     )
     # Third attempts
-    email = settings.FIRST_SUPERUSER_EMAIL
+    email = settings.FIRST_USER_EMAIL
     r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 200
     msg = r.json()
@@ -154,7 +151,7 @@ def test_forgot_password_four_attempts(client: TestClient) -> None:
         "we will send you an e-mail with instructions on how to reset your password."
     )
     # Fourth attempts, failed
-    email = settings.FIRST_SUPERUSER_EMAIL
+    email = settings.FIRST_USER_EMAIL
     r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
     assert r.status_code == 403
     assert "You don't have permission to access this resource" in r.text

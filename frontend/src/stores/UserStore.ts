@@ -45,7 +45,6 @@ export default defineStore({
         username: username,
         password: password,
         is_active: false,
-        is_superuser: false,
       };
       try {
         return await API.users.createUser(user);

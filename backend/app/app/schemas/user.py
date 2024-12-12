@@ -3,9 +3,7 @@
 # 
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from datetime import date
 from enum import IntEnum
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, SecretStr, UUID4, PositiveInt, DirectoryPath, PastDate
 
@@ -22,7 +20,6 @@ class UserBase(BaseModel):
     email: EmailStr
     username: str = Field(max_length=16)
     is_active: bool = False
-    is_superuser: bool = False
 
 
 # Properties to receive via API on creation
@@ -32,7 +29,6 @@ class UserCreate(UserBase):
     # username: str = Field(max_length=16)
     password: SecretStr = Field(min_length=8, max_length=64)
     # is_active: bool = False
-    # is_superuser: bool = False
 
 
 # Properties to receive via API on update
@@ -73,7 +69,6 @@ class User(UserBase):
     preferred_language: str
     access_type: int
     # is_active: bool
-    # is_superuser: bool
 
     model_config = ConfigDict(from_attributes=True)
 
