@@ -13,9 +13,8 @@ from fastapi.param_functions import Form
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app import crud, models, schemas
+from app import crud, schemas
 from app.api import deps
-from schemas import UserInDB
 from utils import (
     send_account_activation_email,
     verify_account_activation_nonce,

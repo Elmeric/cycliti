@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.api_v1.endpoints import strava
 from app.api.api_v1.api import api_router
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -41,6 +42,7 @@ app.add_middleware(
 
 # app.include_router(api_router)
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(strava.router, prefix="/strava", tags=["strava"])
 
 # db_uri = settings.DB_URI
 # print(f"Connecting to MySQL database using: {db_uri}")

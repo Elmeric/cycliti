@@ -1,21 +1,21 @@
 /**
  * Vuetify3 Plugin
  */
-import { createVuetify, type VuetifyOptions } from 'vuetify';
-import * as components from 'vuetify/components';
-import * as directives from 'vuetify/directives';
-import { aliases, mdi } from 'vuetify/iconsets/mdi';
-import * as labsComponents from 'vuetify/labs/components';
+import { createVuetify, type VuetifyOptions } from "vuetify";
+import * as components from "vuetify/components";
+import * as directives from "vuetify/directives";
+import { aliases, mdi } from "vuetify/iconsets/mdi";
+import * as labsComponents from "vuetify/labs/components";
 // Translations provided by Vuetify
-import { en } from 'vuetify/locale';
+import { en } from "vuetify/locale";
 
 // Misc
 // import { loadFonts } from '@/plugins/webfontloader';
 
 // Styles
-import 'vuetify/styles';
+import "vuetify/styles";
 // import { DefaultTheme } from "@/theme/LightTheme"
-import '@mdi/font/css/materialdesignicons.css';
+import "@mdi/font/css/materialdesignicons.css";
 
 // await loadFonts();
 
@@ -27,7 +27,7 @@ import '@mdi/font/css/materialdesignicons.css';
 let vuetifyConfig: VuetifyOptions = {
   // Global configuration
   // https://vuetifyjs.com/en/features/global-configuration/
-    defaults: {
+  defaults: {
     global: {
       // ripple: false,
     },
@@ -38,9 +38,9 @@ let vuetifyConfig: VuetifyOptions = {
   // Icon Fonts
   // https://vuetifyjs.com/en/features/icon-fonts/
   icons: {
-    defaultSet: 'mdi',
+    defaultSet: "mdi",
     aliases: {
-      ...aliases
+      ...aliases,
     },
     sets: {
       mdi,
@@ -49,17 +49,17 @@ let vuetifyConfig: VuetifyOptions = {
   // Internationalization (i18n)
   // https://vuetifyjs.com/en/features/internationalization/#internationalization-i18n
   locale: {
-    locale: 'en',
-    fallback: 'en',
+    locale: "en",
+    fallback: "en",
     messages: { en },
   },
   // Theme
   // https://vuetifyjs.com/en/features/theme/
   theme: {
-    defaultTheme: 'light',
+    defaultTheme: "light",
     // defaultTheme: 'DefaultTheme',
     variations: {
-      colors: ['primary', 'secondary'],
+      colors: ["primary", "secondary"],
       lighten: 5,
       darken: 2,
     },

@@ -9,7 +9,8 @@ from sqlalchemy import String, Integer, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base_class import Base, intpk
-from schemas.user import GenderEnum
+from app.models.circuit import Circuit
+from app.schemas.user import GenderEnum
 
 
 # Refer to: https://github.com/dropbox/sqlalchemy-stubs/issues/98#issuecomment-762884766
@@ -17,11 +18,14 @@ from schemas.user import GenderEnum
 #     hybrid_property = property  # pylint: disable=invalid-name
 # else:
 #     from sqlalchemy.ext.hybrid import hybrid_property
-
+# import sys
+# from pprint import pprint
+# pprint(list(sys.modules.keys()))
 
 class User(Base):
     # pylint: disable=too-few-public-methods
     __tablename__ = "user"
+    __table_args__ = {"mysql_engine": "InnoDB"}
 
     id: Mapped[intpk] = mapped_column(init=False)
     uid: Mapped[str] = mapped_column(String(32), unique=True, index=True)
@@ -37,28 +41,51 @@ class User(Base):
     access_type: Mapped[int] = mapped_column(Integer, default=1)
     is_active: Mapped[bool] = mapped_column(default=False)
     is_superuser: Mapped[bool] = mapped_column(default=False)
+    failed_logins: Mapped[int] = mapped_column(Integer, init=False, default=0)
 
     activation: Mapped["Activation"] = relationship(
         init=False,
         back_populates="user",
-        cascade="all, delete-orphan",
+        cascade="all, delete, delete-orphan",
+        passive_deletes=True,
     )
-
     password_reset: Mapped["PasswordReset"] = relationship(
         init=False,
         back_populates="user",
-        cascade="all, delete-orphan",
+        cascade="all, delete, delete-orphan",
+        passive_deletes=True,
+    )
+    strava_link: Mapped["StravaLink"] = relationship(
+        init=False,
+        back_populates="user",
+        cascade="all, delete, delete-orphan",
+        passive_deletes=True,
+    )
+    circuits: Mapped[list["Circuit"]] = relationship(
+        init=False,
+        back_populates="user",
+        cascade="all, delete, delete-orphan",
     )
 
 
 class Activation(Base):
     # pylint: disable=too-few-public-methods
     __tablename__ = "activation"
+    __table_args__ = (
+        UniqueConstraint("user_id"),
+        {"mysql_engine": "InnoDB"},
+    )
 
     id: Mapped[intpk] = mapped_column(init=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"),
+        init=False,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     nonce: Mapped[str] = mapped_column(Text)
     issued_at: Mapped[int] = mapped_column(Integer)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), init=False)
 
     user: Mapped["User"] = relationship(
         back_populates="activation",
@@ -66,18 +93,26 @@ class Activation(Base):
         single_parent=True,
     )
 
-    __table_args__ = (UniqueConstraint("user_id"),)
-
 
 class PasswordReset(Base):
     # pylint: disable=too-few-public-methods
     __tablename__ = "password_reset"
+    __table_args__ = (
+        UniqueConstraint("user_id"),
+        {"mysql_engine": "InnoDB"},
+    )
 
     id: Mapped[intpk] = mapped_column(init=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"),
+        init=False,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
     nonce: Mapped[str] = mapped_column(Text)
     issued_at: Mapped[int] = mapped_column(Integer)
     attempts: Mapped[int] = mapped_column(Integer)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), init=False)
 
     user: Mapped["User"] = relationship(
         back_populates="password_reset",
@@ -85,7 +120,37 @@ class PasswordReset(Base):
         single_parent=True,
     )
 
-    __table_args__ = (UniqueConstraint("user_id"),)
+
+class StravaLink(Base):
+    # pylint: disable=too-few-public-methods
+    __tablename__ = "strava_link"
+    __table_args__ = (
+        UniqueConstraint("user_id"),
+        {"mysql_engine": "InnoDB"},
+    )
+
+    id: Mapped[intpk] = mapped_column(init=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+        comment="User ID the strava link belongs to"
+    )
+    access_token: Mapped[str] = mapped_column(Text)
+    refresh_token: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        comment="in seconds, from the UNIX epoch",
+    )
+
+    user: Mapped["User"] = relationship(
+        back_populates="strava_link",
+        init=False,
+        single_parent=True,
+    )
+
 
     # basket: Mapped["Basket"] = relationship(
     #     init=False,

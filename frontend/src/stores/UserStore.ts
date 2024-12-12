@@ -46,7 +46,7 @@ export default defineStore({
         password: password,
         is_active: false,
         is_superuser: false,
-      }
+      };
       try {
         return await API.users.createUser(user);
       } catch (error) {
@@ -54,9 +54,7 @@ export default defineStore({
       }
     },
 
-    async resendEmail(
-      email: string,
-    ): Promise<ApiResponse<Msg | null>> {
+    async resendEmail(email: string): Promise<ApiResponse<Msg | null>> {
       try {
         return await API.users.resendEmail(email);
       } catch (error) {
@@ -64,10 +62,7 @@ export default defineStore({
       }
     },
 
-    async activate(
-      email: string,
-      token: string
-    ): Promise<ApiResponse<Msg | null>> {
+    async activate(email: string, token: string): Promise<ApiResponse<Msg | null>> {
       try {
         return await API.users.activate(email, token);
       } catch (error) {
@@ -75,9 +70,7 @@ export default defineStore({
       }
     },
 
-    async forgotPassword(
-      email: string,
-    ): Promise<ApiResponse<Msg | null>> {
+    async forgotPassword(email: string): Promise<ApiResponse<Msg | null>> {
       try {
         return await API.users.forgotPassword(email);
       } catch (error) {
@@ -95,6 +88,10 @@ export default defineStore({
       } catch (error) {
         return API.handleError(error);
       }
+    },
+
+    linkToStrava(state: string) {
+      API.strava.linkStrava(state);
     },
   },
 });

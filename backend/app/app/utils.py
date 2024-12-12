@@ -78,7 +78,7 @@ def send_reset_password_email(email_to: str, email: str, nonce: str) -> str:
     subject = f"{project_name} - Password recovery for user {email}"
     # with open(Path(settings.EMAIL_TEMPLATES_DIR) / "reset_password.html") as f:
     #     template_str = f.read()
-    server_host = settings.SERVER_HOST
+    server_host = settings.FRONTEND_HOST
     link = f"{server_host}auth/reset-password?nonce={nonce}"
     print(f"Sending email reset password: {link}", nonce)
     send_email(
@@ -101,7 +101,7 @@ def send_account_activation_email(email_to: str, email: str, nonce: str) -> str:
     subject = f"{project_name} - Account activation for user {email}"
     # with open(Path(settings.EMAIL_TEMPLATES_DIR) / "account_activation.html") as f:
     #     template_str = f.read()
-    server_host = settings.SERVER_HOST
+    server_host = settings.FRONTEND_HOST
     link = f"{server_host}auth/activate?nonce={nonce}"
     send_email(
         email_to=email_to,

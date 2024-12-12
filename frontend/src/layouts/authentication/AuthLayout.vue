@@ -2,7 +2,7 @@
 import { RouterView } from "vue-router";
 import BaseLayout from "@/layouts/BaseLayout.vue";
 import AuthHeader from "@/layouts/authentication/AuthHeader.vue";
-import HomeFooter from "@/layouts/home/HomeFooter.vue";
+import HomeFooter from "@/layouts/landing/LandingFooter.vue";
 </script>
 
 <template>

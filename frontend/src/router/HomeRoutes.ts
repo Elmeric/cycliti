@@ -1,5 +1,5 @@
 const HomeRoutes = {
-  path: "/",
+  path: "/home",
   meta: {
     requireAuth: false,
   },
@@ -8,7 +8,7 @@ const HomeRoutes = {
     {
       name: "Home",
       path: "",
-      component: () => import("@/views/HomePage.vue"),
+      component: () => import("@/views/home/HomePage.vue"),
     },
   ],
 };

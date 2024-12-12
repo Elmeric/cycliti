@@ -3,8 +3,8 @@ const MainRoutes = {
   meta: {
     requiresAuth: true,
   },
-  component: () => import("@/layouts/dashboard/FakeDashboard.vue"),
-  // component: () => import("@/layouts/dashboard/DashboardLayout.vue"),
+  // component: () => import("@/layouts/dashboard/FakeDashboard.vue"),
+  component: () => import("@/layouts/dashboard/DashboardLayout.vue"),
   children: [
     {
       name: "Dashboard",

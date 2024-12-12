@@ -9,9 +9,9 @@ const appTitle = import.meta.env.VITE_APP_TITLE;
 const headerLinks = shallowRef([
   {
     id: 1,
-    title: "Home",
-    link: "/home",
-    icon: "mdi-home",
+    title: "Features",
+    link: "/home/features",
+    icon: "mdi-eye",
   },
   {
     id: 2,
@@ -26,12 +26,12 @@ const { isLoading } = storeToRefs(uiStore);
 </script>
 
 <template>
-  <v-toolbar border color="surface" density="compact" class="text-h6 px-2 text-primary">
-    <v-toolbar-title class="font-weight-black">
+  <v-toolbar color="surface" density="default" flat class="px-2 text-primary">
+    <v-toolbar-title class="text-h4 font-weight-black">
       <RouterLink
         :to="{ name: 'Home' }"
         aria-label="logo"
-        class="text-primary text-decoration-none"
+        class="text-h4 font-weight-black text-primary text-decoration-none"
       >
         <v-icon icon="mdi-bike" color="primary" class="me-2"></v-icon>
         {{ appTitle }}
@@ -40,33 +40,32 @@ const { isLoading } = storeToRefs(uiStore);
 
     <ToolbarProgressIndicator :loading="isLoading" color="primary" />
 
-    <div>
+    <v-spacer></v-spacer>
+
+    <v-toolbar-items class="hidden-sm-and-down">
       <v-btn
         v-for="item in headerLinks"
         :key="item.id"
         :to="item.link"
         :prepend-icon="item.icon"
         variant="flat"
-        class="mx-2 text-primary font-weight-bold"
+        size="large"
+        class="px-8 text-primary font-weight-bold"
       >
         {{ item.title }}
       </v-btn>
-    </div>
 
-    <v-spacer></v-spacer>
-
-    <div class="hidden-sm-and-down">
       <v-btn
         prepend-icon="mdi-login"
         to="/auth/login"
         variant="elevated"
         color="secondary"
-        size="small"
+        size="x-large"
         class="mx-16"
       >
         Log in
       </v-btn>
-    </div>
+    </v-toolbar-items>
 
     <AppBarToggleDarkMode />
 
@@ -106,9 +105,3 @@ const { isLoading } = storeToRefs(uiStore);
     </v-menu>
   </v-toolbar>
 </template>
-
-<style>
-.v-toolbar__content {
-  width: 500px !important;
-}
-</style>

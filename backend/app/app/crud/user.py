@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase, CrudError, CrudIntegrityError
-from app.models.user import Activation, User, PasswordReset
+from app.models.user import Activation, User, PasswordReset, StravaLink
 from app.schemas.user import UserCreate, UserUpdate
 from utils import generate_nonce
 
@@ -149,6 +149,24 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         if reset:
             user_db.password_reset = None
         db.add(user_db)
+        try:
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise CrudError() from exc
+
+    async def link_to_strava(
+            self, db: Session, *, db_obj: User, tokens: tuple[str, str, int]
+    ):
+        access_token, refresh_token, expires_at = tokens
+        strava_link = StravaLink(
+            user_id=db_obj.id,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_at=expires_at,
+        )
+        db_obj.strava_link = strava_link
+        db.add(db_obj)
         try:
             db.commit()
         except SQLAlchemyError as exc:

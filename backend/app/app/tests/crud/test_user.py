@@ -56,74 +56,36 @@ async def test_not_authenticate_user(session: Session) -> None:
     assert user is None
 
 
-async def test_check_if_user_is_active(session: Session) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_active=True,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
-    is_active = crud.user.is_active(user)
+async def test_check_if_user_is_active(
+        session: Session, random_active_user
+) -> None:
+    is_active = crud.user.is_active(random_active_user)
     assert is_active is True
 
 
-async def test_check_if_user_is_active_inactive(session: Session) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-    )
-    user = await crud.user.create(session, obj_in=user_in)
-    is_active = crud.user.is_active(user)
+async def test_check_if_user_is_active_inactive(
+        session: Session, random_user
+) -> None:
+    is_active = crud.user.is_active(random_user)
     assert is_active is False
 
 
-async def test_check_if_user_is_superuser(session: Session) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_superuser=True,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
-    is_superuser = crud.user.is_superuser(user)
+async def test_check_if_user_is_superuser(
+        session: Session, random_superuser
+) -> None:
+    is_superuser = crud.user.is_superuser(random_superuser)
     assert is_superuser is True
 
 
-async def test_check_if_user_is_superuser_normal_user(session: Session) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-    )
-    user = await crud.user.create(session, obj_in=user_in)
-    is_superuser = crud.user.is_superuser(user)
+async def test_check_if_user_is_superuser_normal_user(
+        session: Session, random_user
+) -> None:
+    is_superuser = crud.user.is_superuser(random_user)
     assert is_superuser is False
 
 
-async def test_get_user(session: Session) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+async def test_get_user(session: Session, random_user) -> None:
+    user = random_user
     user_2 = await crud.user.get(session, obj_id=user.id)
     assert user_2
     assert user.email == user_2.email
@@ -135,21 +97,36 @@ async def test_get_user_unknown_user(session: Session) -> None:
     assert user is None
 
 
-async def test_activate_user(session: Session) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+async def test_activate_user(session: Session, random_user) -> None:
+    user = random_user
     assert not user.is_active
     await crud.user.activate(session, db_obj=user)
     activated_user = await crud.user.get(session, user.id)
     assert activated_user.is_active
     assert activated_user.activation is None
+
+
+async def test_link_to_strava_success(session: Session, random_active_user) -> None:
+    await crud.user.link_to_strava(
+        session, db_obj=random_active_user, tokens=("access", "refresh", 12345)
+    )
+    linked_user = await crud.user.get(session, random_active_user.id)
+    assert linked_user.strava_link.access_token == "access"
+    assert linked_user.strava_link.refresh_token == "refresh"
+    assert linked_user.strava_link.expires_at == 12345
+
+
+async def test_link_to_strava_commit_failed(
+        session: Session, random_active_user, mock_commit
+) -> None:
+    state, called = mock_commit
+    state["failed"] = True
+
+    with pytest.raises(crud.CrudError):
+        await crud.user.link_to_strava(
+            session, db_obj=random_active_user, tokens=("access", "refresh", 12345)
+        )
+    assert called[0]
 
 
 # def test_update_user(db: Session) -> None:

@@ -10,6 +10,7 @@ import jwt
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from sqlalchemy import create_engine, URL
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,8 +18,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.db.base_class import Base
 import app.config as config
 from app.config import Settings
-from app import crud
-from tests.utils.utils import random_email
+from app import crud, models
+from schemas import UserCreate
+from tests.utils.utils import random_email, random_lower_string
 
 # Replace the env file in the settings object
 config.settings = Settings(_env_file='/home/eric/code/cycliti/backend/app/app/.test.env')
@@ -97,6 +99,47 @@ def client_fixture(session: Session):
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def random_user(session: Session) -> models.User:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+    )
+    return await crud.user.create(session, obj_in=user_in)
+
+
+@pytest_asyncio.fixture
+async def random_active_user(session: Session) -> models.User:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+        is_active=True
+    )
+    return await crud.user.create(session, obj_in=user_in)
+
+
+@pytest_asyncio.fixture
+async def random_superuser(session: Session) -> models.User:
+    email = random_email()
+    username = random_lower_string(8)
+    password = random_lower_string(32)
+    user_in = UserCreate(
+        email=email,
+        username=username,
+        password=SecretStr(password),
+        is_superuser=True
+    )
+    return await crud.user.create(session, obj_in=user_in)
 
 
 @pytest.fixture

@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
-import HomeRoutes from "./HomeRoutes";
+import LandingRoutes from "./LandingRoutes";
 import MainRoutes from "./MainRoutes";
 import AuthRoutes from "./AuthRoutes";
 import { useAuthStore } from "@/stores";
 import { useUIStore } from "@/stores";
+import HomeRoutes from "./HomeRoutes";
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,6 +13,7 @@ export const router = createRouter({
       path: "/:pathMatch(.*)*",
       component: () => import("@/views/pages/maintenance/error/Error404Page.vue"),
     },
+    LandingRoutes,
     HomeRoutes,
     MainRoutes,
     AuthRoutes,

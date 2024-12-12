@@ -10,7 +10,6 @@ DOTENV = Path(__file__).parent / ".env"
 class Settings(BaseSettings):
     PROJECT_NAME: str
     API_V1_STR: str = "/api/v1"
-    SERVER_HOST: AnyHttpUrl
 
     MYSQL_HOST: str
     MYSQL_PORT: int = 3306
@@ -32,6 +31,12 @@ class Settings(BaseSettings):
     EMAILS_FROM_DISPLAY_NAME: str = "Cyclity"
     EMAILS_FROM_USERNAME: str = "contact"
     EMAILS_FROM_DOMAIN: str = "cycliti.com"
+
+    STRAVA_CLIENT_ID: str
+    STRAVA_CLIENT_SECRET: str
+    STRAVA_TOKEN_URL: str
+
+    FRONTEND_HOST: AnyHttpUrl
 
     @computed_field(return_type=str)
     @property

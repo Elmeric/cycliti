@@ -2,6 +2,7 @@ import { AxiosError, isAxiosError } from "axios";
 
 import authController from "./authentication";
 import usersController from "./users";
+import stravaController from "./strava";
 import { getErrorMessage, reportError } from "@/utils/log_utils";
 
 import type { ApiResponse } from "./types";
@@ -29,4 +30,5 @@ export const API = {
   handleError,
   auth: authController,
   users: usersController,
+  strava: stravaController,
 };
