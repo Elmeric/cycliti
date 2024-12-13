@@ -109,7 +109,7 @@ async def link_to_strava(
         user = await crud.user.get(db, obj_id=int(state))
 
         # Check that it is an active user
-        if not user.is_active:
+        if not crud.user.is_active(user):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission to access this resource.",

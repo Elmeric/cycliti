@@ -19,9 +19,13 @@ def test_get_access_token_success(client: TestClient) -> None:
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
     assert r.status_code == 200
-    tokens = r.json()
-    assert "access_token" in tokens
-    assert tokens["access_token"]
+    user_token = r.json()
+    user = user_token["user"]
+    assert user["email"] == settings.FIRST_USER_EMAIL
+    assert user["username"] == "Elmeric"
+    token = user_token["token"]
+    assert "access_token" in token
+    assert token["access_token"]
 
 
 def test_get_access_token_invalid_password(client: TestClient) -> None:
@@ -44,7 +48,9 @@ def test_get_access_token_unknown_user(client: TestClient) -> None:
     assert "Login failed; Invalid user ID or password" in r.text
 
 
-async def test_get_access_token_inactive_user(session: Session, client: TestClient) -> None:
+async def test_get_access_token_inactive_user(
+        session: Session, client: TestClient
+) -> None:
     email = random_email()
     username = random_lower_string(8)
     password = random_lower_string(32)
@@ -173,23 +179,14 @@ def test_forgot_password_unknown_user(client: TestClient) -> None:
 # Path: /reset-password
 #
 async def test_reset_password_success(
-        client: TestClient, mock_generate_nonce, session: Session
+        client: TestClient, mock_generate_nonce, session: Session, random_active_user
 ) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_active=True,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+    user = random_active_user
     assert user.is_active
-    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{user.email}")
     assert r.status_code == 200
     body_data = {
-        "email": email,
+        "email": user.email,
         "new_password": "ericeric",
         "nonce": "NONCE",
     }
@@ -198,25 +195,16 @@ async def test_reset_password_success(
     msg = r.json()
     assert "msg" in msg
     assert msg["msg"] == "Password updated successfully."
-    user = await crud.user.get_by_email(session, email=email)
+    user = await crud.user.get_by_email(session, email=user.email)
     assert verify_password("ericeric", user.hashed_password)
 
 
 async def test_reset_password_unknown_user(
-        client: TestClient, mock_generate_nonce, session: Session
+        client: TestClient, mock_generate_nonce, session: Session, random_active_user
 ) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_active=True,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+    user = random_active_user
     assert user.is_active
-    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{user.email}")
     assert r.status_code == 200
     body_data = {
         "email": random_email(),
@@ -229,25 +217,16 @@ async def test_reset_password_unknown_user(
 
 
 async def test_reset_password_inactive_user(
-        session: Session, client: TestClient, mock_generate_nonce
+        session: Session, client: TestClient, mock_generate_nonce, random_user
 ) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_active=False,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+    user = random_user
     assert not user.is_active
 
-    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{user.email}")
     assert r.status_code == 200
 
     body_data = {
-        "email": email,
+        "email": user.email,
         "new_password": "changeme",
         "nonce": "NONCE",
     }
@@ -257,21 +236,12 @@ async def test_reset_password_inactive_user(
 
 
 async def test_reset_password_no_password_reset(
-        client: TestClient, mock_generate_nonce, session: Session
+        client: TestClient, mock_generate_nonce, session: Session, random_active_user
 ) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_active=True,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+    user = random_active_user
     assert not user.password_reset
     body_data = {
-        "email": email,
+        "email": user.email,
         "new_password": "ericeric",
         "nonce": "NONCE",
     }
@@ -281,23 +251,14 @@ async def test_reset_password_no_password_reset(
 
 
 async def test_reset_password_invalid_nonce(
-        client: TestClient, session: Session
+        client: TestClient, session: Session, random_active_user
 ) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_active=True,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+    user = random_active_user
     assert user.is_active
-    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{user.email}")
     assert r.status_code == 200
     body_data = {
-        "email": email,
+        "email": user.email,
         "new_password": "ericeric",
         "nonce": "FAKE",
     }
@@ -311,22 +272,14 @@ async def test_reset_password_db_server_error(
         client: TestClient,
         mock_change_password_commit_failed,
         mock_generate_nonce,
+        random_active_user
 ) -> None:
-    email = random_email()
-    username = random_lower_string(8)
-    password = random_lower_string(32)
-    user_in = UserCreate(
-        email=email,
-        username=username,
-        password=SecretStr(password),
-        is_active=True,
-    )
-    user = await crud.user.create(session, obj_in=user_in)
+    user = random_active_user
     assert user.is_active
-    r = client.post(f"{settings.API_V1_STR}/forgot-password/{email}")
+    r = client.post(f"{settings.API_V1_STR}/forgot-password/{user.email}")
     assert r.status_code == 200
     body_data = {
-        "email": email,
+        "email": user.email,
         "new_password": "ericeric",
         "nonce": "NONCE",
     }

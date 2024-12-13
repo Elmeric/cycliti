@@ -5,17 +5,15 @@ import { API } from "@/services";
 import type { Msg, UserCreate, UserIn } from "@/models/User";
 import type { ApiResponse } from "@/services/types";
 
-interface UsersState {
-  users: UserIn[];
+interface UserState {
   currentUser: UserIn | null;
 }
 
 export default defineStore({
   id: "User",
 
-  state: (): UsersState => {
+  state: (): UserState => {
     return {
-      users: [],
       currentUser: null,
     };
   },
@@ -44,7 +42,6 @@ export default defineStore({
         email: email,
         username: username,
         password: password,
-        is_active: false,
       };
       try {
         return await API.users.createUser(user);

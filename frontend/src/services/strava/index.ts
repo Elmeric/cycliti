@@ -1,9 +1,3 @@
-import http from "@/services/api";
-import { useAuthStore } from "@/stores";
-
-import type { Msg, UserCreate, UserIn } from "@/models/User";
-import type { ApiResponse } from "../types";
-
 function linkStrava(state: string) {
   const stravaClientId = `${import.meta.env.VITE_STRAVA_CLIENT_ID}`;
   let redirectUri = `${import.meta.env.VITE_BACKEND_PROTOCOL}://${import.meta.env.VITE_BACKEND_HOST}`;

@@ -6,7 +6,6 @@ export interface UserOut {
 interface UserBase {
   email: string;
   username: string;
-  is_active: boolean;
 }
 
 export interface UserCreate extends UserBase {
@@ -28,10 +27,6 @@ export interface UserUpdate {
 
 export interface UserIn extends UserBase {
   id: number;
-  // email: string;
-  // username: string;
-  // is_active: boolean;
-  // is_superuser: boolean;
   name: string;
   city: string;
   birthdate: string;
@@ -44,6 +39,11 @@ export interface UserIn extends UserBase {
 export interface Token {
   access_token: string;
   token_type: string;
+}
+
+export interface UserToken {
+  user: UserIn;
+  token: Token;
 }
 
 export interface Msg {

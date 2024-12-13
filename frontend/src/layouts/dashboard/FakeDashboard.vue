@@ -1,30 +1,26 @@
 <script setup lang="ts">
-import { onMounted, ref, type Ref } from "vue";
+import { ref, type Ref } from "vue";
 import { useAuthStore, useUserStore } from "@/stores";
-// import { storeToRefs } from "pinia";
-import type { UserIn } from "@/models/User";
+import { storeToRefs } from "pinia";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
-// const currentUser = storeToRefs(userStore).currentUser;
-const currentUser = ref<UserIn | null>(null);
-const loading = ref(true);
+const currentUser = storeToRefs(userStore).currentUser;
+// const currentUser = ref<UserIn | null>(null);
+const loading = ref(false);
 const msg: Ref<string | undefined> = ref(undefined);
-// const count = ref(0);
 
-onMounted(async () => {
-  const { success, content, message } = await userStore.getCurrentUser();
-  if (!success) {
-    msg.value = message;
-  } else {
-    currentUser.value = content
-  }
-  loading.value = false;
-});
+// onMounted(async () => {
+//   const { success, content, message } = await userStore.getCurrentUser();
+//   if (!success) {
+//     msg.value = message;
+//   } else {
+//     currentUser.value = content
+//   }
+//   loading.value = false;
+// });
 
 async function connectWithStrava(e: any) {
-  // count.value++;
-  // console.log("Connect with strava clicked!", count.value);
   if (currentUser.value === null) {
     msg.value = "A current user shall exists!"
   } else {

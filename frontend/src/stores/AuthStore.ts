@@ -2,8 +2,9 @@ import { defineStore } from "pinia";
 import { router } from "@/router";
 
 import { API } from "@/services";
+import { useUserStore } from "@/stores";
 
-import type { Token } from "@/models/User";
+import type { Token, UserToken } from "@/models/User";
 import type { ApiResponse } from "@/services/types";
 
 interface AuthState {
@@ -66,10 +67,11 @@ export default defineStore({
       username: string,
       password: string,
       keepMe: boolean = false
-    ): Promise<ApiResponse<Token | null>> {
+    ): Promise<ApiResponse<UserToken | null>> {
       try {
         const result = await API.auth.authenticate({ username, password });
-        this.setToken(result.content, keepMe);
+        this.setToken(result.content.token, keepMe);
+        useUserStore().setCurrentUser(result.content.user)
         return result;
       } catch (error) {
         return API.handleError(error);

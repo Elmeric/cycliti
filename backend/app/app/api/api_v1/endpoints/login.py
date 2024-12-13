@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Annotated
+from typing import Any, Annotated, Union
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -18,10 +18,14 @@ router = APIRouter()
 
 
 # https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#authentication-and-error-messages
-@router.post("/login/access-token", response_model=schemas.Token)
+@router.post(
+    "/login/access-token",
+    response_model=schemas.UserToken,
+)
 async def get_access_token(
-    db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
-) -> schemas.Token:
+        db: Session = Depends(deps.get_db),
+        form_data: OAuth2PasswordRequestForm = Depends(),
+) -> Any:
     """
     OAuth2 compatible token login, get an access token for future requests
     """
@@ -51,14 +55,14 @@ async def get_access_token(
         # TODO: Log the error
         print(f"Login succes for user: {user.email} but cannot reset "
               f"its password_reset entry")
-        pass
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return schemas.Token(
+    token = schemas.Token(
         access_token=security.create_access_token(
             user.email, expires_delta=access_token_expires
         ),
         token_type="bearer",
     )
+    return schemas.UserToken(user=user, token=token)
 
 
 @router.post("/login/test-token", response_model=schemas.User)
@@ -133,7 +137,7 @@ async def reset_password(
         detail="Password reset failed; Invalid user ID or token.",
     )
     user = await crud.user.get_by_email(db, email=email)
-    if not user or not user.is_active:
+    if not user or not crud.user.is_active(user):
         raise credentials_exception
     if not user.password_reset:
         raise credentials_exception

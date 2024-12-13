@@ -4,13 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from typing import Any, Annotated
-from uuid import uuid4
 
-from argon2 import PasswordHasher
 from fastapi import APIRouter, Depends, status, Body
 from fastapi.exceptions import HTTPException
-from fastapi.param_functions import Form
-from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app import crud, schemas
@@ -19,8 +15,6 @@ from utils import (
     send_account_activation_email,
     verify_account_activation_nonce,
 )
-
-# from crud.base import CrudError
 
 
 router = APIRouter()
@@ -53,7 +47,6 @@ async def create_user(
     *,
     db: Session = Depends(deps.get_db),
     user_in: schemas.UserCreate,
-    # current_user: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
     Create new user.
@@ -91,7 +84,7 @@ async def resend_activation_email(
     Resend an activation email to the provided email if exist and allowed.
     """
     user = await crud.user.get_by_email(db, email=email)
-    if not user or user.is_active or not user.activation:
+    if not user or crud.user.is_active(user) or not user.activation:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to access this resource.",
@@ -129,7 +122,7 @@ async def activate_account(
     if not user:
         raise credentials_exception
     print(f"User: {user}")
-    if user.is_active:
+    if crud.user.is_active(user):
         return {"msg": "Your account is activated: Log in and enjoy Cycliti!"}
     expected_nonce = user.activation.nonce
     issued_at = user.activation.issued_at

@@ -21,7 +21,8 @@ def get_first_user_token_headers(client: TestClient) -> dict[str, str]:
         "password": settings.FIRST_USER_PASSWORD,
     }
     r = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
-    tokens = r.json()
-    a_token = tokens["access_token"]
+    user_token = r.json()
+    token = user_token["token"]
+    a_token = token["access_token"]
     headers = {"Authorization": f"Bearer {a_token}"}
     return headers
