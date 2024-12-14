@@ -115,10 +115,16 @@ async def link_to_strava(
                 detail="You don't have permission to access this resource.",
             )
 
-        # Update the user's strava_link with the response tokens
-        await crud.user.link_to_strava(
-            db, db_obj=user, tokens=(access_token, refresh_token, expires_at)
-        )
+        if user.strava_link is None:
+            # Set the user's strava_link with the response tokens
+            await crud.user.link_to_strava(
+                db, db_obj=user, tokens=(access_token, refresh_token, expires_at)
+            )
+        else:
+            # Update the user's strava link
+            await crud.user.update_strava_link(
+                db, db_obj=user, tokens=(access_token, refresh_token, expires_at)
+            )
 
         # Redirect to the main page or any other desired page after processing
         redirect_url = Url(str(settings.FRONTEND_HOST) + "?stravaLinked=1")

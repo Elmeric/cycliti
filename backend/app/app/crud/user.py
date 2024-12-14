@@ -173,6 +173,19 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db.rollback()
             raise CrudError() from exc
 
+    async def update_strava_link(
+            self, db: Session, *, db_obj: User, tokens: tuple[str, str, int]
+    ):
+        access_token, refresh_token, expires_at = tokens
+        db_obj.strava_link.access_token = access_token
+        db_obj.strava_link.refresh_token = refresh_token
+        db_obj.strava_link.expires_at = expires_at
+        try:
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            raise CrudError() from exc
+
     def is_active(self, db_obj: User) -> bool:
         return db_obj.is_active
 
